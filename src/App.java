@@ -10,7 +10,7 @@ public class App {
             return "É burro";
         }
         else {
-            return "É burro na mesma";
+            return "É burro";
         }
     }
 
