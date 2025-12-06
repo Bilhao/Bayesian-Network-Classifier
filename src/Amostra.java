@@ -81,7 +81,7 @@ public class Amostra {
         }
         return r;
     }
-
+    @Override
     public String toString() {
         return "Amostra = {Lista de amostras = " + show(valuesList) + "], máximos = " + Arrays.toString(max) + "]}";
     }
@@ -108,6 +108,7 @@ public class Amostra {
         System.out.println(m.domain(x1));
         System.out.println(m.count(x1,x2));
         System.out.println(m.length());
+        System.out.println(Arrays.toString(m.element(0)));
     }
 }
 
