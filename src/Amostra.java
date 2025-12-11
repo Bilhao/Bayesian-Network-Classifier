@@ -13,7 +13,8 @@ public class Amostra {
 
     /*
     recebe um vetor e adiciona-o à amostra.
-    Cria uma lsita de inteiros assim que adicionados os vetores com os máximos de cada posição.
+    Cria uma lista de inteiros assim que adicionados os vetores com os máximos de cada posição.
+    E atualiza o array max devido a presença de novos vetores na amostra
     */
     public void add(int[] x) {
         this.valuesList.add(x);
@@ -37,19 +38,19 @@ public class Amostra {
         return this.valuesList.size();
     }
 
-    //recebe uma posição e retorna o vetor da amostra.
+    //recebe uma posição e retorna o vetor da amostra que está nessa posição.
     public int[] element(int i) {
         return this.valuesList.get(i);
     }
 
     /*
-    Recebe uma amostra e um vetor de posições e retorna o n~umero de elementos possíveis
+    Recebe uma amostra e um vetor de posições e retorna o número de elementos possíveis
     desse vetor de posições.
     */
     public int domain(int[] v) {
         int r = 1;
         for (int i = 0; i < v.length; i++) {
-            r = r * (this.max[i] + 1); //asumimos sempre a existência de valores intermédios.
+            r = r * (this.max[i] + 1); //assumimos sempre a existência de valores intermédios.
         }
         return r;
     }
@@ -81,6 +82,7 @@ public class Amostra {
         }
         return r;
     }
+    
     @Override
     public String toString() {
         return "Amostra = {Lista de amostras = " + show(valuesList) + "], máximos = " + Arrays.toString(max) + "]}";

@@ -1,15 +1,14 @@
 import java.util.LinkedList;
 import java.util.Arrays;
 
-public class grafoo {
+public class OrientedGraph {
     int n;
     LinkedList<Integer>[] adj;
 
     /*
     Método construtor que recebe um natural n e retorna o grafo com n nós e sem arestas.
     */
-   @SuppressWarnings("unchecked")
-    public grafoo(int n) {
+    public OrientedGraph(int n) {
         this.n = n;
         this.adj = new LinkedList[n];
         for (int i = 0; i < this.n; i++) {
@@ -79,12 +78,29 @@ public class grafoo {
         return o != d && BFS(o).contains(d);  //"o != d" serve para excluir um caminho vazio, ou seja, sem aresta.
     }
 
+    /* 
+    Recebe um nó e retorna a lista de nós que são pais do nó.
+    */
+    public int[] parents(int o) {
+        LinkedList<Integer> parentsList = new LinkedList<>();
+        for (int i = 0; i < this.n; i++) {
+            if (this.adj[i].contains(o)) {
+                parentsList.add(i);
+            }
+        }
+        int[] parentsArray = new int[parentsList.size()];
+        for (int i = 0; i < parentsList.size(); i++) {
+            parentsArray[i] = parentsList.get(i);
+        }
+        return parentsArray;    
+    }
+
     public String toString() {
         return "Grafo = " + Arrays.toString(adj) + ", Número de vértices = " + n + ".";
     }
     
     public static void main(String[] args) {
-        grafoo g = new grafoo(3);
+        OrientedGraph g = new OrientedGraph(3);
         g.add_edge(0, 1);
         g.add_edge(0, 2);
         g.add_edge(1,2);
