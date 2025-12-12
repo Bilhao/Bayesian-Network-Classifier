@@ -96,7 +96,13 @@ public class OrientedGraph {
      * @param d
      */
     public boolean connected(int o, int d) {
-        return o != d && BFS(o).contains(d); // "o != d" serve para excluir um caminho vazio, ou seja, sem aresta.
+        // return o != d && BFS(o).contains(d); // "o != d" serve para excluir um caminho vazio, ou seja, sem aresta. ISSO NÃO FUNCIONA SE EXISTIR UMA ARESTA QUE SE "AUTOLIGA" - ARRUMADO By RAFAEL
+        for (int child : children(o)) {
+            if (BFS(child).contains(d)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -142,11 +148,12 @@ public class OrientedGraph {
         g.add_edge(0, 2);
         g.add_edge(1, 3);
         g.add_edge(2, 3);
-        g.add_edge(3, 0);
+        g.add_edge(0, 0);
+        //g.add_edge(3, 0);
 
         System.out.println(g);
 
+        System.out.println(g.connected(0, 0));
         System.out.println(g.isCycle(0));
     }
-
 }

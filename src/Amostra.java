@@ -53,14 +53,14 @@ public class Amostra {
     }
 
     /**
-     * Recebe uma amostra e um vetor de posições e retorna o número de elementos
-     * possíveis desse vetor de posições.
+     * Recebe um vetor de posições e retorna o domínio conjunto das variáveis nessas
+     * posições.
      * 
      * @param vector Vetor de posições
      */
     public int domain(int[] vector) {
         int r = 1;
-        for (int i = 0; i < vector.length; i++) {
+        for (int i : vector) {
             r = r * (this.max[i] + 1); // Assumimos sempre a existência de valores intermédios.
         }
         return r;
@@ -90,7 +90,8 @@ public class Amostra {
 
     @Override
     public String toString() {
-        return "Amostra = {Lista de vetores na amostra = [" + show(vectorsList) + "]; Máximos = " + Arrays.toString(max) + "}";
+        return "Amostra = {Lista de vetores na amostra = [" + show(vectorsList) + "]; Maximos = " + Arrays.toString(max)
+                + "}";
     }
 
     public static String show(ArrayList<int[]> lista) {
@@ -101,20 +102,4 @@ public class Amostra {
         return s;
     }
 
-    public static void main(String[] args) {
-        Amostra m = new Amostra();
-        int[] a1 = { 0, 3, 3, 4 };
-        int[] a2 = { 0, 3, 4, 5 };
-        int[] a3 = { 0, 3, 1, 2 };
-        m.add(a1);
-        m.add(a2);
-        m.add(a3);
-        int[] x1 = { 0, 1 };
-        int[] x2 = { 0, 3 };
-        System.out.println(m);
-        System.out.println(m.domain(x1));
-        System.out.println(m.count(x1, x2));
-        System.out.println(m.length());
-        System.out.println(Arrays.toString(m.element(0)));
-    }
 }
