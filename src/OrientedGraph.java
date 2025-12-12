@@ -8,6 +8,7 @@ public class OrientedGraph {
     /*
     Método construtor que recebe um natural n e retorna o grafo com n nós e sem arestas.
     */
+   @SuppressWarnings("unchecked")
     public OrientedGraph(int n) {
         this.n = n;
         this.adj = new LinkedList[n];
@@ -104,7 +105,6 @@ public class OrientedGraph {
         g.add_edge(0, 1);
         g.add_edge(0, 2);
         g.add_edge(1,2);
-
         System.out.println(g);
     }
 
