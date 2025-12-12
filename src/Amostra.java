@@ -79,7 +79,7 @@ public class Amostra {
         int r = 0;
         for (int[] vetor : this.vectorsList) {
             for (int i = 0; i < vars.length; i++) {
-                if (vetor[vars[i]] != vals[i]) {
+                if (vetor[vars[i]] == vals[i]) {
                     r++;
                     break;
                 }
@@ -103,7 +103,7 @@ public class Amostra {
 
     public static void main(String[] args) {
         Amostra m = new Amostra();
-        int[] a1 = { 1, 2, 3, 4 };
+        int[] a1 = { 0, 3, 3, 4 };
         int[] a2 = { 0, 3, 4, 5 };
         int[] a3 = { 0, 3, 1, 2 };
         m.add(a1);
