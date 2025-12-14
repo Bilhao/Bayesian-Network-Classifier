@@ -1,7 +1,7 @@
 public class Main {
     public static void main(String[] args) {
 
-        Amostra amostra = ReadCSV.read("..//bcancer.csv");
+        Amostra amostra = ReadCSV.read("bcancer.csv");
         // System.out.println(amostra);
         System.out.println(amostra);
         System.out.println(amostra.length());

@@ -76,12 +76,16 @@ public class Amostra {
      */
     public int count(int[] vars, int[] vals) {
         int r = 0;
-        for (int[] vetor : this.vectorsList) {
+        for (int[] vector : this.vectorsList) {
+            boolean match = true;
             for (int i = 0; i < vars.length; i++) {
-                if (vetor[vars[i]] == vals[i]) {
-                    r++;
+                if (vector[vars[i]] != vals[i]) {
+                    match = false;
                     break;
                 }
+            }
+            if (match) {
+                r++;
             }
         }
         return r;
