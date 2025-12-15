@@ -299,7 +299,7 @@ public class OrientedGraphTestes {
         System.out.println(g);
         System.out.println(Arrays.toString(g.parents(3)));
 
-        Amostra amostra = ReadCSV.read("../bcancer.csv");
+        Amostra amostra = ReadCSV.read("../DataSets/bcancer.csv");
         int nodeIdx = 3;
         int di = 2;
         int[] parentsIdx = g.parents(nodeIdx);

@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Main {
-    
+
     public static String show(ArrayList<int[]> lista) {
         String s = "";
         for (int[] x : lista) { // Para todos os elementos de lista
@@ -13,10 +13,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Amostra amostra = ReadCSV.read("../bcancer.csv");
+        Amostra amostra = ReadCSV.read("../DataSets/bcancer.csv");
         // System.out.println(amostra);
         System.out.println(amostra.length());
-        System.out.println(amostra.domain(new int[]{0,1}));
-        System.out.println(show(amostra.combinations(new int[] {0,2})));
+        System.out.println(amostra.domain(new int[] { 0, 1 }));
+        System.out.println(show(amostra.combinations(new int[] { 0, 2 })));
     }
 }
