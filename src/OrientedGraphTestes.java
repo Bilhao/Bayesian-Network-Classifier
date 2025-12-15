@@ -7,8 +7,7 @@ public class OrientedGraphTestes {
     LinkedList<Integer>[] adj;
 
     /**
-     * Método construtor que recebe um natural n e retorna o grafo com n nós e sem
-     * arestas.
+     * Método construtor que recebe um natural n e retorna o grafo com n nós e sem arestas.
      * 
      * @param n
      */
@@ -64,8 +63,7 @@ public class OrientedGraphTestes {
     }
 
     /**
-     * Recebe um nó e retorna a lista de nós visitados em uma busca em largura (BFS)
-     * a partir do nó.
+     * Recebe um nó e retorna a lista de nós visitados em uma busca em largura (BFS) a partir do nó.
      * 
      * @param o
      * @return
@@ -146,11 +144,11 @@ public class OrientedGraphTestes {
      * Calcula Pr(d_i, w_i, c)
      * 
      * @param amostra
-     * @param nodeIdx    - índice do nó
-     * @param di         - valor do nó
+     * @param nodeIdx - índice do nó
+     * @param di - valor do nó
      * @param parentsIdx - índices dos pais do nó
-     * @param wi         - valores dos pais do nó
-     * @param c          - valor da classificação
+     * @param wi - valores dos pais do nó
+     * @param c - valor da classificação
      */
     public double prdwc(Amostra amostra, int nodeIdx, int di, int[] parentsIdx, int[] wi, int c) {
         // Construção do array vars com os indices das variáveis
@@ -170,8 +168,7 @@ public class OrientedGraphTestes {
         }
         vals[vals.length - 1] = c;
 
-        double prdwc = (double) amostra.count(vars, vals) / amostra.length(); // Casting para double para evitar divisão
-                                                                              // inteira
+        double prdwc = (double) amostra.count(vars, vals) / amostra.length(); // Casting para double para evitar divisão inteira
         return prdwc;
     }
 
@@ -245,10 +242,9 @@ public class OrientedGraphTestes {
     }
 
     /**
-     * Calcula It(X_i; Π_i | C) = ∑ Pr(d_i, w_i, c) * log2( (Pr(d_i, w_i, c) *
-     * Pr(c)) / (Pr(d_i, c) * Pr(w_i, c)) )
-     * É a informação mútua condicional entre o nó i e os seus pais, dado a classe
-     * c.
+     * Calcula It(X_i; Π_i | C) = ∑ Pr(d_i, w_i, c) * log2( (Pr(d_i, w_i, c) * Pr(c)) / (Pr(d_i, c) * Pr(w_i, c)) )
+     * 
+     * É a informação mútua condicional entre o nó i e os seus pais, dado a classe c.
      * 
      * @param amostra
      * @param nodeIdx
@@ -261,13 +257,12 @@ public class OrientedGraphTestes {
         double it = 0.0;
 
         for (int i = 0; i < amostra.domain(new int[] { nodeIdx }); i++) { // para cada valor di
-            for (int j = 0; j < amostra.domain(parentsIdx); j++) { // para cada combinação de valores wi - Ainda não sei
-                                                                   // como fazer isso direito (acho que está errado)
+            for (int[] v_wi : amostra.combinations(wi)) { // para cada combinação de valores wi
                 for (int w = 0; w < amostra.domain(new int[] { c }); w++) { // para cada valor c
-                    double prdwc = prdwc(amostra, nodeIdx, i, parentsIdx, wi, w);
+                    double prdwc = prdwc(amostra, nodeIdx, i, parentsIdx, v_wi, w);
                     double prc = prc(amostra, w);
                     double prdc = prdc(amostra, nodeIdx, i, w);
-                    double prwc = prwc(amostra, parentsIdx, wi, w);
+                    double prwc = prwc(amostra, parentsIdx, v_wi, w);
 
                     if (prdwc > 0 && prc > 0 && prdc > 0 && prwc > 0) {
                         it += prdwc * (Math.log((prdwc * prc) / (prdc * prwc)) / Math.log(2));
