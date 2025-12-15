@@ -76,16 +76,83 @@ public class Amostra {
      */
     public int count(int[] vars, int[] vals) {
         int r = 0;
-        for (int[] vetor : this.vectorsList) {
+        for (int[] vector : this.vectorsList) {
+            boolean match = true;
             for (int i = 0; i < vars.length; i++) {
-                if (vetor[vars[i]] == vals[i]) {
-                    r++;
+                if (vector[vars[i]] != vals[i]) {
+                    match = false;
                     break;
                 }
+            }
+            if (match) {
+                r++;
             }
         }
         return r;
     }
+
+    /**
+     * Retorna as combinações de valores possível dado um vetor de posições
+     * 
+     * @param vars
+     * @return
+     */
+    public ArrayList<int[]> combinations(int[] vars) {
+        int combinationsLength = domain(vars);
+        ArrayList<int[]> combinations = new ArrayList<int[]>();
+        
+        for (int i = 0; i < combinationsLength; i++) { // Para cada combinação
+            int temp = i;
+            int[] value = new int[vars.length];
+            for (int j = vars.length - 1; j >= 0; j--) { // Para cada variável
+                int var = vars[j];
+                value[j] = temp % (max[var] + 1); 
+                temp /= (max[var] + 1);
+            }
+            combinations.add(value);
+        }
+        return combinations;
+    }
+
+    // /**
+    //  * Retorna as combinações de valores possível dado um vetor de posições
+    //  * 
+    //  * @param vars
+    //  * @return
+    //  */
+    // public ArrayList<int[]> combinations(int[] vars) {
+    //     ArrayList<int[]> result = new ArrayList<>();
+    //     generateCombinations(vars, 0, new int[vars.length], result);
+    //     return result;
+    // }
+    
+    // /**
+    //  * Método auxiliar recursivo para gerar combinações de valores.
+    //  * 
+    //  * Percorre todas as posições em vars e para cada posição, itera sobre todos os valores possíveis (de 0 ao máximo dessa variável), armzenando-os na combinação atual.
+    //  * Se a combinação atual estiver completa, adiciona-a à lista de resultados.
+    //  * 
+    //  * Para evitar duplicados, logo após adicionar uma combinação à lista de resultados, retorna imediatamente.
+    //  * 
+    //  * @param vars - vetor de posições
+    //  * @param index - índice atual em vars
+    //  * @param current - combinação atual sendo construída
+    //  * @param result - lista de combinações resultantes
+    //  */
+    // private void generateCombinations(int[] vars, int index, int[] current, ArrayList<int[]> result) {
+    //     if (index == vars.length) {
+    //         result.add(current);
+    //         return;
+    //     }
+
+    //     int varIndex = vars[index];
+    //     int maxValue = this.max[varIndex];
+
+    //     for (int val = 0; val <= maxValue; val++) {
+    //         current[index] = val;
+    //         generateCombinations(vars, index + 1, current, result);
+    //     }
+    // }
 
     @Override
     public String toString() {
