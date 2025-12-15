@@ -140,6 +140,10 @@ public class OrientedGraph {
         return parentsArray;
     }
 
+    double log2(double x) {
+        return Math.log(x) / Math.log(2);
+    }
+
     /**
      * Calcula Pr(d_i, w_i, c)
      * 
@@ -150,7 +154,7 @@ public class OrientedGraph {
      * @param wi - valores dos pais do nó
      * @param c - valor da classificação
      */
-    public double prdwc(Amostra amostra, int nodeIdx, int di, int[] parentsIdx, int[] wi, int c) {
+    double prdwc(Amostra amostra, int nodeIdx, int di, int[] parentsIdx, int[] wi, int c) {
         // Construção do array vars com os indices das variáveis
         int[] vars = new int[1 + parentsIdx.length + 1];
 
@@ -180,7 +184,7 @@ public class OrientedGraph {
      * @param di
      * @param c
      */
-    public double prdc(Amostra amostra, int nodeIdx, int di, int c) {
+    double prdc(Amostra amostra, int nodeIdx, int di, int c) {
         // Construção do array vars com os indices das variáveis
         int[] vars = new int[2];
         vars[0] = nodeIdx;
@@ -203,7 +207,7 @@ public class OrientedGraph {
      * @param wi
      * @param c
      */
-    public double prwc(Amostra amostra, int[] parentsIdx, int[] wi, int c) {
+    double prwc(Amostra amostra, int[] parentsIdx, int[] wi, int c) {
         // Construção do array vars com os indices das variáveis
         int[] vars = new int[parentsIdx.length + 1];
         for (int i = 0; i < parentsIdx.length; i++) {
@@ -228,7 +232,7 @@ public class OrientedGraph {
      * @param amostra
      * @param c
      */
-    public double prc(Amostra amostra, int c) {
+    double prc(Amostra amostra, int c) {
         // Construção do array vars com os indices das variáveis
         int[] vars = new int[1];
         vars[0] = amostra.element(0).length - 1; // Índice da variável de classificação (última variável)
@@ -253,25 +257,59 @@ public class OrientedGraph {
      * @param wi
      * @param c
      */
-    public double It(Amostra amostra, int nodeIdx, int di, int[] parentsIdx, int[] wi, int c) {
+    double It(Amostra amostra, int nodeIdx) {
         double it = 0.0;
+        int[] parentsIdx = parents(nodeIdx);
 
         for (int i = 0; i < amostra.domain(new int[] { nodeIdx }); i++) { // para cada valor di
-            for (int[] v_wi : amostra.combinations(wi)) { // para cada combinação de valores wi
-                for (int w = 0; w < amostra.domain(new int[] { c }); w++) { // para cada valor c
+            for (int[] v_wi : amostra.combinations(parentsIdx)) { // para cada combinação de valores wi
+                for (int w = 0; w < amostra.domain(new int[] { amostra.element(0).length - 1 }); w++) { // para cada valor c
                     double prdwc = prdwc(amostra, nodeIdx, i, parentsIdx, v_wi, w);
                     double prc = prc(amostra, w);
                     double prdc = prdc(amostra, nodeIdx, i, w);
                     double prwc = prwc(amostra, parentsIdx, v_wi, w);
-
+                    
                     if (prdwc > 0 && prc > 0 && prdc > 0 && prwc > 0) {
-                        it += prdwc * (Math.log((prdwc * prc) / (prdc * prwc)) / Math.log(2));
+                        it += prdwc * log2((prdwc * prc) / (prdc * prwc));
                     }
                 }
             }
         }
 
         return it;
+    }
+
+    /**
+     * Calcula LL(G | D) = N * ∑ It(X_i; Π_i | C)
+     *  
+     * @param amostra
+     */
+    double LL(Amostra amostra) {
+        double ll = 0.0;
+        for (int i = 0; i < this.n - 1; i++) { // Para cada nó (excluindo o nó de classificação)
+            ll += It(amostra, i);
+        }
+        return amostra.length() * ll;
+    }
+
+    double penalizacao(Amostra amostra) {
+        double theta = 0.0;
+        int D_c = amostra.domain(new int[] {amostra.element(0).length - 1}); // Domínio da variável de classificação 
+        // int n = amostra.element(0).length - 1;
+
+        double sum = 0.0;
+        for (int i = 0; i < this.n; i++) {
+            int k_i = amostra.domain(new int[] {i});
+            int q_i = amostra.domain(parents(k_i));
+            sum += (k_i - 1) * q_i * D_c;
+        }
+
+        theta = (D_c - 1) + sum; 
+        return (log2(amostra.length()) / 2) * theta;
+    }
+
+    public double MDL(Amostra amostra) {
+        return LL(amostra) - penalizacao(amostra);
     }
 
     @Override
@@ -283,31 +321,32 @@ public class OrientedGraph {
         OrientedGraph g = new OrientedGraph(10);
         g.add_edge(0, 1);
         g.add_edge(0, 2);
-        g.add_edge(1, 3);
-        g.add_edge(2, 3);
-        g.add_edge(3, 4);
-        g.add_edge(4, 5);
-        g.add_edge(4, 2);
-        g.add_edge(5, 6);
-        g.add_edge(5, 8);
-        g.add_edge(6, 7);
-        g.add_edge(7, 8);
-        g.add_edge(8, 9);
-        g.add_edge(8, 6);
-        g.add_edge(9, 10);
+        g.add_edge(3, 2);
+        // g.add_edge(2, 3);
+        // g.add_edge(3, 4);
+        // g.add_edge(4, 5);
+        // g.add_edge(4, 2);
+        // g.add_edge(5, 6);
+        // g.add_edge(5, 8);
+        // g.add_edge(6, 7);
+        // g.add_edge(7, 8);
+        // g.add_edge(8, 9);
+        // g.add_edge(8, 6);
+        // g.add_edge(9, 10);
 
         System.out.println(g);
         System.out.println(Arrays.toString(g.parents(3)));
 
         Amostra amostra = ReadCSV.read("../DataSets/bcancer.csv");
-        int nodeIdx = 3;
-        int di = 2;
+        int nodeIdx = 0;
         int[] parentsIdx = g.parents(nodeIdx);
-        int[] wi = { 0, 2 };
-        int c = 1;
+        System.out.println(Arrays.toString(parentsIdx));
 
-        double result = g.It(amostra, nodeIdx, di, parentsIdx, wi, c);
+        double result = g.It(amostra, nodeIdx);
+        double mdl = g.MDL(amostra);
+        // Valor do It para o nó 1 com pais {0}
         System.out.printf("It - %.10f\n", result);
+        System.out.printf("MDL Score - %.10f\n", mdl);
         System.out.println();
     }
 }
