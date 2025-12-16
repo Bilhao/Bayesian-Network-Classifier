@@ -17,7 +17,6 @@ import java.io.IOException;
 public class ReadCSV {
     /**
      * Lê um arquivo CSV e retorna uma Amostra com os dados lidos.
-     * @param csvFile
      */
     public static Amostra read(String csvFile) {
         Amostra amostra = new Amostra();
@@ -48,7 +47,6 @@ public class ReadCSV {
 
     /**
      * Converte uma linha CSV em um vetor de inteiros.
-     * @param line
      */
     private static int[] convert(String line) {
         String[] lineSplit = line.split(","); // Como é um CSV o separador é ","
