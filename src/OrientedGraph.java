@@ -257,6 +257,39 @@ public class OrientedGraph {
         return LL(amostra) - penalizacao(amostra);
     }
 
+    public double MDLdelta(Amostra amostra, int o, int d, int op) {
+        double mdl_before = MDL(amostra);
+
+        if (op == 0) { // remover aresta
+            if (!this.adj[o].contains(d)) {
+                throw new IllegalArgumentException("A aresta não existe para ser removida");
+            } else if (isCycle(d)) {
+                throw new IllegalArgumentException("Remover a aresta criaria um ciclo");
+            } else {
+                remove_edge(o, d);
+            }
+        } else if (op == 1) { // inverter aresta
+            if (!this.adj[o].contains(d)) {
+                throw new IllegalArgumentException("A aresta não existe para ser invertida");
+            } else if (isCycle(d)) {
+                throw new IllegalArgumentException("Inverter a aresta criaria um ciclo");
+            } else {
+                invert_edge(o, d);
+            }
+        } else if (op == 2) { // adicionar aresta
+            if (this.adj[o].contains(d)) {
+                throw new IllegalArgumentException("A aresta já existe para ser adicionada");
+            } else if (isCycle(d)) {
+                throw new IllegalArgumentException("Adicionar a aresta criaria um ciclo");
+            } else {
+                add_edge(o, d);
+            }   
+        }
+
+        double mdl_after = MDL(amostra);
+        return mdl_after - mdl_before;
+    }
+
     @Override
     public String toString() {
         return "Grafo = " + Arrays.toString(adj) + ", Número de vértices = " + n + ".";
@@ -283,15 +316,20 @@ public class OrientedGraph {
         System.out.println(Arrays.toString(g.parents(3)));
 
         Amostra amostra = ReadCSV.read("../DataSets/bcancer.csv");
-        int d_iIdx = 0;
+        int d_iIdx = 3;
         int[] parentsIdx = g.parents(d_iIdx);
         System.out.println(Arrays.toString(parentsIdx));
 
         double It = g.It(amostra, d_iIdx);
         double mdl = g.MDL(amostra);
-
+        double mdldelta = g.MDLdelta(amostra, 0, 3, 2);
+        double It2 = g.It(amostra, d_iIdx);
+        
         System.out.printf("It - %.10f\n", It);
+        System.out.printf("It2 - %.10f\n", It2);
         System.out.printf("MDL Score - %.10f\n", mdl);
+        System.out.printf("MDL Delta (adicionar aresta 0->1) - %.10f\n", mdldelta);
         System.out.println();
+
     }
 }
