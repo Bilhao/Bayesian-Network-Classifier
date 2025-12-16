@@ -239,17 +239,16 @@ public class OrientedGraph {
     }
 
     double penalizacao(Amostra amostra) {
-        double theta = 0.0;
         int D_c = amostra.domain(new int[] { amostra.element(0).length - 1 }); // Domínio da variável de classificação
 
         double sum = 0.0;
-        for (int i = 0; i < this.n; i++) {
+        for (int i = 0; i < this.n - 1; i++) {
             int k_i = amostra.domain(new int[] { i });
-            int q_i = amostra.domain(parents(k_i));
+            int q_i = amostra.domain(parents(i));
             sum += (k_i - 1) * q_i * D_c;
         }
 
-        theta = (D_c - 1) + sum;
+        double theta = (D_c - 1) + sum;
         return (log2(amostra.length()) / 2) * theta;
     }
 
