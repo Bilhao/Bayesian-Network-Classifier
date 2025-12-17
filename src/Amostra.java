@@ -47,11 +47,18 @@ public class Amostra {
     }
 
     /**
-     * Recebe um vetor de posições e retorna o domínio conjunto das variáveis nessas posições.
+     * Recebe uma posição e retorna o domínio das variáveis nessa posição.
      */
-    public int domain(int[] vector) {
+    public int domain(int varIdx) {
+        return this.max[varIdx] + 1;
+    }
+
+    /**
+     * Recebe uma lista de posições e retorna o domínio conjunto das variáveis nessas posições.
+     */
+    public int domain(ArrayList<Integer> vars) {
         int r = 1;
-        for (int i : vector) {
+        for (int i : vars) {
             r = r * (this.max[i] + 1); // Assumimos sempre a existência de valores intermédios.
         }
         return r;
@@ -62,12 +69,12 @@ public class Amostra {
      * 
      * Exemplo: se vars = [0,2] e vals = [1,3], conta quantas amostras têm valor 1 na variável 0 e valor 3 na variável 2.
      */
-    public int count(int[] vars, int[] vals) {
+    public int count(ArrayList<Integer> vars, ArrayList<Integer> vals) {
         int r = 0;
         for (int[] vector : this.vectorsList) {
             boolean match = true;
-            for (int i = 0; i < vars.length; i++) {
-                if (vector[vars[i]] != vals[i]) {
+            for (int i = 0; i < vars.size(); i++) {
+                if (vector[vars.get(i)] != vals.get(i)) {
                     match = false;
                     break;
                 }
@@ -80,18 +87,21 @@ public class Amostra {
     }
 
     /**
-     * Retorna as combinações de valores possível dado um vetor de posições
+     * Retorna as combinações de valores possível dado uma lista de posições
      */
-    public ArrayList<int[]> combinations(int[] vars) {
+    public ArrayList<ArrayList<Integer>> combinations(ArrayList<Integer> vars) {
         int combinationsLength = domain(vars);
-        ArrayList<int[]> combinations = new ArrayList<int[]>();
+        ArrayList<ArrayList<Integer>> combinations = new ArrayList<>();
 
         for (int i = 0; i < combinationsLength; i++) { // Para cada combinação
             int temp = i;
-            int[] value = new int[vars.length];
-            for (int j = vars.length - 1; j >= 0; j--) { // Para cada variável
-                int var = vars[j];
-                value[j] = temp % (max[var] + 1);
+            ArrayList<Integer> value = new ArrayList<>();
+            for (int j = 0; j < vars.size(); j++) { // Inicializar com zeros
+                value.add(0);
+            }
+            for (int j = vars.size() - 1; j >= 0; j--) { // Para cada variável
+                int var = vars.get(j);
+                value.set(j, temp % (max[var] + 1));
                 temp /= (max[var] + 1);
             }
             combinations.add(value);
@@ -105,11 +115,11 @@ public class Amostra {
     }
 
     public static String show(ArrayList<int[]> lista) {
-        String s = "";
+        StringBuilder s = new StringBuilder();
         for (int[] x : lista) { // Para todos os elementos de lista
-            s = s + Arrays.toString(x) + ",";
+            s.append(Arrays.toString(x)).append(",");
         }
-        return s;
+        return s.toString();
     }
 
 }
