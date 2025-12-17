@@ -13,7 +13,7 @@ public class Main {
 
     public static void main(String[] args) {
 
-        Amostra amostra = ReadCSV.read("DataSets/bcancer.csv");
+        Amostra amostra = ReadCSV.read("../DataSets/bcancer.csv");
         // System.out.println(amostra);
         System.out.println(amostra.length());
         System.out.println(amostra.domain(new int[] { 0, 1 }));
