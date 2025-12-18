@@ -140,9 +140,17 @@ class ClassificationFrame extends JFrame {
         mainPanel.add(Box.createVerticalStrut(15));
 
         // Botoes
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new BorderLayout());
         buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         buttonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+
+        JButton backButton = new JButton("Voltar");
+        backButton.setFont(new Font("Default", Font.PLAIN, 10));
+        backButton.setFocusable(false);
+        backButton.addActionListener(e -> {
+            dispose();
+            MainApp.main(new String[] {});
+        });
 
         JButton batchButton = new JButton("Lote");
         batchButton.setFont(new Font("Default", Font.PLAIN, 10));
@@ -160,9 +168,13 @@ class ClassificationFrame extends JFrame {
         classifyButton.setEnabled(false);
         classifyButton.addActionListener(e -> classifyPatient());
 
-        buttonPanel.add(batchButton);
-        buttonPanel.add(clearButton);
-        buttonPanel.add(classifyButton);
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        rightButtons.add(batchButton);
+        rightButtons.add(clearButton);
+        rightButtons.add(classifyButton);
+
+        buttonPanel.add(backButton, BorderLayout.WEST);
+        buttonPanel.add(rightButtons, BorderLayout.EAST);
         mainPanel.add(buttonPanel);
 
         add(mainPanel);
@@ -173,7 +185,7 @@ class ClassificationFrame extends JFrame {
         label.setFont(new Font("Segoe UI", Font.PLAIN, size));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (needBorder)
-            label.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+            label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         return label;
     }
 
@@ -184,10 +196,10 @@ class ClassificationFrame extends JFrame {
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
                 String networkPath = chooser.getSelectedFile().getAbsolutePath();
-                
+
                 network = BayesianNetwork.load(networkPath);
                 networkFileField.setText(networkPath);
-                
+
                 String samplePath = networkPath.replace(".bn", "_sample.dat");
                 try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(samplePath))) {
                     trainingData = (Amostra) in.readObject();
@@ -215,7 +227,7 @@ class ClassificationFrame extends JFrame {
 
         for (int i = 0; i < n - 1; i++) {
             JPanel paramPanel = new JPanel(new BorderLayout(3, 0));
-            paramPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+            paramPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
             JLabel label = new JLabel(variableNames[i] + ":");
             label.setFont(new Font("Segoe UI", Font.PLAIN, 11));

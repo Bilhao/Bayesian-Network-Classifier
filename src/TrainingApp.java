@@ -148,9 +148,17 @@ class TrainingFrame extends JFrame {
         mainPanel.add(Box.createVerticalStrut(15));
 
         // Botoes
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel buttonPanel = new JPanel(new BorderLayout());
         buttonPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         buttonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+
+        JButton backButton = new JButton("Voltar");
+        backButton.setFocusable(false);
+        backButton.setFont(new Font("Default", Font.PLAIN, 10));
+        backButton.addActionListener(e -> {
+            dispose();
+            MainApp.main(new String[] {});
+        });
 
         startButton = new JButton("Iniciar");
         startButton.setFocusable(false);
@@ -162,8 +170,12 @@ class TrainingFrame extends JFrame {
         clearButton.setFont(new Font("Default", Font.PLAIN, 10));
         clearButton.addActionListener(e -> clearAll());
 
-        buttonPanel.add(clearButton);
-        buttonPanel.add(startButton);
+        JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        rightButtons.add(clearButton);
+        rightButtons.add(startButton);
+
+        buttonPanel.add(backButton, BorderLayout.WEST);
+        buttonPanel.add(rightButtons, BorderLayout.EAST);
         mainPanel.add(buttonPanel);
 
         add(mainPanel);
@@ -174,7 +186,7 @@ class TrainingFrame extends JFrame {
         label.setFont(new Font("Segoe UI", Font.PLAIN, size));
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
         if (needBorder)
-            label.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+            label.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         return label;
     }
 
