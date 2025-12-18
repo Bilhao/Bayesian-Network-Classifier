@@ -160,7 +160,7 @@ class TrainingFrame extends JFrame {
             MainApp.main(new String[] {});
         });
 
-        startButton = new JButton("Iniciar");
+        startButton = new JButton("▶ Iniciar");
         startButton.setFocusable(false);
         startButton.setFont(new Font("Default", Font.PLAIN, 10));
         startButton.addActionListener(e -> startLearning());
