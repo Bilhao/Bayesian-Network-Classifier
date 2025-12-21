@@ -1,4 +1,5 @@
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -43,9 +44,9 @@ public class BayesianNetwork {
                 paiscomclasse[i] = pais[i];
             }
             paiscomclasse[pais.length] = C; //adiciona a classe porque é sempre pai
-            int[] ws = new int[tamanho];
-            for(int i = 0; i < paiscomclasse.length; i++) {
-                ws[i] = paiscomclasse[i];
+            ArrayList<int[]> ws = amostra.combinations(paiscomclasse); //conjunto de combinações
+            for(int i = 0; i < ws.size(); i++) {
+                int[] w = ws.get(i);//cada combinação 
             }
         }
     }
