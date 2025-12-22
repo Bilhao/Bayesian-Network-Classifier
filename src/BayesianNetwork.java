@@ -47,12 +47,16 @@ public class BayesianNetwork {
             ArrayList<int[]> ws = amostra.combinations(paiscomclasse); //conjunto de combinações
             for(int i = 0; i < ws.size(); i++) {
                 int[] w = ws.get(i);//cada combinação 
+                int denCount = amostra.count(paiscomclasse, w);
+                double den = denCount + S*(amostra.max[k] + 1); //denominador
+                int dk = amostra.max[k] + 1;
+                double[] probs = new double[dk];
+                for(int d = 0; d < dk; d++) {
+                    
+                }
             }
         }
     }
 
 
 }
-
-
-
