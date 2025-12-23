@@ -32,16 +32,14 @@ public class Amostra {
         }
     }
 
-    /**
-     * Retorna o número de vetores na amostra.
-     */
     public int length() {
         return this.vectorsList.size();
     }
+    
+    public int dim() {
+        return this.max.length;
+    }
 
-    /**
-     * Recebe um índice i e retorna o vetor na posição i da amostra.
-     */
     public int[] element(int i) {
         return this.vectorsList.get(i);
     }
@@ -60,6 +58,19 @@ public class Amostra {
         int r = 1;
         for (int i : vars) {
             r = r * (this.max[i] + 1); // Assumimos sempre a existência de valores intermédios.
+        }
+        return r;
+    }
+
+    /**
+     * Conta quantas vezes um certo valor ocorre na variável indicada.
+     */
+    public int count(int var, int val) {
+        int r = 0;
+        for (int[] vector : this.vectorsList) {
+            if (vector[var] == val) {
+                r++;
+            }
         }
         return r;
     }
@@ -111,15 +122,15 @@ public class Amostra {
 
     @Override
     public String toString() {
-        return "Amostra = {Lista de vetores na amostra = [" + show(vectorsList) + "]; Maximos = " + Arrays.toString(max) + "}";
-    }
-
-    public static String show(ArrayList<int[]> lista) {
-        StringBuilder s = new StringBuilder();
-        for (int[] x : lista) { // Para todos os elementos de lista
-            s.append(Arrays.toString(x)).append(",");
+        StringBuilder sb = new StringBuilder("Amostra [vectorsList=[");
+        for (int i = 0; i < vectorsList.size(); i++) {
+            sb.append(Arrays.toString(vectorsList.get(i)));
+            if (i < vectorsList.size() - 1) {
+                sb.append(", ");
+            }
         }
-        return s.toString();
+        sb.append("], max=").append(Arrays.toString(max)).append("]");
+        return sb.toString();
     }
 
 }
