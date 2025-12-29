@@ -29,10 +29,7 @@ class ClassificationFrame extends JFrame {
     private JTextArea probabilitiesArea;
     private JButton classifyButton;
 
-    private BayesianNetwork network;
-    private Amostra trainingData;
     private ArrayList<JSpinner> parameterSpinners;
-    private String[] variableNames;
 
     public ClassificationFrame() {
         setTitle("Classificação com Redes de Bayes");
@@ -152,11 +149,6 @@ class ClassificationFrame extends JFrame {
             MainApp.main(new String[] {});
         });
 
-        JButton batchButton = new JButton("Lote");
-        batchButton.setFont(new Font("Default", Font.PLAIN, 10));
-        batchButton.setFocusable(false);
-        batchButton.addActionListener(e -> batchClassify());
-
         JButton clearButton = new JButton("Limpar");
         clearButton.setFont(new Font("Default", Font.PLAIN, 10));
         clearButton.setFocusable(false);
@@ -166,10 +158,8 @@ class ClassificationFrame extends JFrame {
         classifyButton.setFont(new Font("Default", Font.PLAIN, 10));
         classifyButton.setFocusable(false);
         classifyButton.setEnabled(false);
-        classifyButton.addActionListener(e -> classifyPatient());
 
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
-        rightButtons.add(batchButton);
         rightButtons.add(clearButton);
         rightButtons.add(classifyButton);
 
@@ -197,15 +187,11 @@ class ClassificationFrame extends JFrame {
             try {
                 String networkPath = chooser.getSelectedFile().getAbsolutePath();
 
-                network = BayesianNetwork.load(networkPath);
                 networkFileField.setText(networkPath);
 
                 String samplePath = networkPath.replace(".bn", "_sample.dat");
-                try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(samplePath))) {
-                    trainingData = (Amostra) in.readObject();
-                }
+                
 
-                variableNames = network.getVariableNames();
                 createParameterFields();
                 classifyButton.setEnabled(true);
 
@@ -220,93 +206,10 @@ class ClassificationFrame extends JFrame {
         parametersPanel.removeAll();
         parameterSpinners.clear();
 
-        int n = network.getN();
-        int[] domains = network.getDomains();
-
         parametersPanel.setLayout(new GridLayout(0, 4, 3, 3));
-
-        for (int i = 0; i < n - 1; i++) {
-            JPanel paramPanel = new JPanel(new BorderLayout(3, 0));
-            paramPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-            JLabel label = new JLabel(variableNames[i] + ":");
-            label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-
-            JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, domains[i] - 1, 1));
-            parameterSpinners.add(spinner);
-
-            paramPanel.add(label, BorderLayout.WEST);
-            paramPanel.add(spinner, BorderLayout.CENTER);
-            parametersPanel.add(paramPanel);
-        }
 
         parametersPanel.revalidate();
         parametersPanel.repaint();
-    }
-
-    private void classifyPatient() {
-        if (network == null || trainingData == null) {
-            JOptionPane.showMessageDialog(this, "Carregue uma rede primeiro.", "Aviso", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        int n = network.getN();
-        int[] instance = new int[n];
-
-        for (int i = 0; i < n - 1; i++) {
-            instance[i] = (Integer) parameterSpinners.get(i).getValue();
-        }
-
-        int predictedClass = network.classify(instance, trainingData);
-        double[] probabilities = network.getClassProbabilities(instance, trainingData);
-
-        classResultLabel.setText(String.valueOf(predictedClass));
-
-        double confidence = probabilities[predictedClass] * 100;
-        confidenceLabel.setText(String.format("%.1f%%", confidence));
-
-        StringBuilder probText = new StringBuilder();
-        for (int c = 0; c < probabilities.length; c++) {
-            probText.append(String.format("Classe %d: %.4f (%.2f%%)", c, probabilities[c], probabilities[c] * 100));
-            if (c == predictedClass)
-                probText.append(" *");
-            probText.append("\n");
-        }
-        probabilitiesArea.setText(probText.toString());
-    }
-
-    private void batchClassify() {
-        if (network == null || trainingData == null) {
-            JOptionPane.showMessageDialog(this, "Carregue uma rede primeiro.", "Aviso", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        JFileChooser chooser = new JFileChooser();
-        chooser.setFileFilter(new FileNameExtensionFilter("Arquivos CSV", "csv"));
-
-        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            try {
-                Amostra testData = ReadCSV.read(chooser.getSelectedFile().getAbsolutePath());
-
-                int correct = 0;
-                int total = testData.length();
-
-                for (int i = 0; i < total; i++) {
-                    int[] instance = testData.element(i);
-                    int predicted = network.classify(instance, trainingData);
-                    int actual = instance[instance.length - 1];
-                    if (predicted == actual)
-                        correct++;
-                }
-
-                double accuracy = (double) correct / total * 100;
-
-                JOptionPane.showMessageDialog(this, String.format("Total: %d\nCorretas: %d\nPrecisao: %.2f%%", total, correct, accuracy), "Resultado", JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(this, "Erro: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
-            }
-        }
     }
 
     private void clearResults() {
