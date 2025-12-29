@@ -3,7 +3,7 @@ import java.util.LinkedList;
 import java.lang.Math;
 
 public class OrientedGraph {
-    int n; // Número de nós
+    int n; // Número de nós = dimensão do dataset excluindo a classe
     ArrayList<ArrayList<Integer>> adj;
     ArrayList<ArrayList<Integer>> adjParents;
 
@@ -66,12 +66,12 @@ public class OrientedGraph {
         queue.add(o);
 
         while (!queue.isEmpty()) {
-            int v = queue.removeFirst();
-            order.add(v);
-            for (int w : children(v)) {
-                if (!visited[w]) {
-                    visited[w] = true;
-                    queue.add(w);
+            int current = queue.removeFirst();
+            order.add(current);
+            for (int child : children(current)) {
+                if (!visited[child]) {
+                    visited[child] = true;
+                    queue.add(child);
                 }
             }
         }
@@ -82,9 +82,23 @@ public class OrientedGraph {
      * Recebe dois nós e retorna true se existe um caminho de um nó para outro.
      */
     public boolean connected(int o, int d) {
-        for (int child : children(o)) {
-            if (BFS(child).contains(d)) {
+        if (o == d)
+            return true;
+
+        LinkedList<Integer> queue = new LinkedList<>();
+        boolean[] visited = new boolean[this.n];
+
+        queue.add(o);
+        visited[o] = true;
+        while (!queue.isEmpty()) {
+            int current = queue.removeFirst();
+            if (current == d)
                 return true;
+            for (int child : children(current)) {
+                if (!visited[child]) {
+                    visited[child] = true;
+                    queue.add(child);
+                }
             }
         }
         return false;
@@ -214,23 +228,23 @@ public class OrientedGraph {
         double scoreAfter;
 
         if (op == 0) {
-            // Remover o→d: só d é afetado (perde um pai)
+            // Remover o → d significa que só d é afetado no score (perde um pai)
             scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            add_edge(o, d); // Reverter
+            add_edge(o, d);
         } else if (op == 1) {
-            // Inverter o→d para d→o: o e d são afetados
+            // Inverter o → d para d → o significa que o e d são afetados no score
             scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
             scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
-            invert_edge(d, o); // Reverter
+            invert_edge(d, o);
         } else {
-            // Adicionar o→d: só d é afetado (ganha um pai)
+            // Adicionar o → d significa que só d é afetado no score (ganha um pai)
             scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            remove_edge(o, d); // Reverter
+            remove_edge(o, d);
         }
 
         return scoreAfter - scoreBefore;
@@ -239,41 +253,5 @@ public class OrientedGraph {
     @Override
     public String toString() {
         return "OrientedGraph [n=" + n + ", adj=" + adj + "]";
-    }
-
-    public static void main(String[] args) {
-        OrientedGraph g = new OrientedGraph(10);
-        g.add_edge(0, 1);
-        g.add_edge(0, 2);
-        g.add_edge(3, 2);
-        // g.add_edge(2, 3);
-        // g.add_edge(3, 4);
-        // g.add_edge(4, 5);
-        // g.add_edge(4, 2);
-        // g.add_edge(5, 6);
-        // g.add_edge(5, 8);
-        // g.add_edge(6, 7);
-        // g.add_edge(7, 8);
-        // g.add_edge(8, 9);
-        // g.add_edge(8, 6);
-        // g.add_edge(9, 10);
-
-        System.out.println(g);
-        System.out.println(g.parents(3));
-
-        Amostra amostra = ReadCSV.read("DataSets/bcancer.csv");
-        int d_iIdx = 3;
-        ArrayList<Integer> parentsIdx = g.parents(d_iIdx);
-        System.out.println(parentsIdx);
-
-        double It = g.It(amostra, d_iIdx);
-        double mdl = g.MDL(amostra);
-        double mdldelta = g.MDLdelta(amostra, 0, 3, 2);
-        double It2 = g.It(amostra, d_iIdx);
-
-        System.out.printf("It - %.10f\n", It);
-        System.out.printf("It2 - %.10f\n", It2);
-        System.out.printf("MDL Score - %.10f\n", mdl);
-        System.out.printf("MDL Delta (adicionar aresta 0->1) - %.10f\n", mdldelta);
     }
 }
