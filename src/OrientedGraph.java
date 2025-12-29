@@ -187,23 +187,53 @@ public class OrientedGraph {
         return (log2(amostra.length()) / 2) * theta;
     }
 
+    /**
+     * Calcula o score (LL - penalização) para um único nó i.
+     */
+    double nodeScore(Amostra amostra, int i) {
+        int classIdx = amostra.element(0).length - 1;
+        int D_c = amostra.domain(classIdx);
+        int k_i = amostra.domain(i);
+        int q_i = amostra.domain(parents(i));
+
+        double ll_i = amostra.length() * It(amostra, i);
+        double penalty_i = (log2(amostra.length()) / 2) * (k_i - 1) * q_i * D_c;
+
+        return ll_i - penalty_i;
+    }
+
     public double MDL(Amostra amostra) {
         return LL(amostra) - penalizacao(amostra);
     }
 
+    /**
+     * Calcula a diferença de MDL após uma operação, calculando apenas os nós afetados. op: 0 = remover, 1 = inverter, 2 = adicionar
+     */
     public double MDLdelta(Amostra amostra, int o, int d, int op) {
-        double mdl_before = MDL(amostra);
+        double scoreBefore;
+        double scoreAfter;
 
         if (op == 0) {
+            // Remover o→d: só d é afetado (perde um pai)
+            scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
+            scoreAfter = nodeScore(amostra, d);
+            add_edge(o, d); // Reverter
         } else if (op == 1) {
+            // Inverter o→d para d→o: o e d são afetados
+            scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
-        } else if (op == 2) {
+            scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
+            invert_edge(d, o); // Reverter
+        } else {
+            // Adicionar o→d: só d é afetado (ganha um pai)
+            scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
+            scoreAfter = nodeScore(amostra, d);
+            remove_edge(o, d); // Reverter
         }
 
-        double mdl_after = MDL(amostra);
-        return mdl_after - mdl_before;
+        return scoreAfter - scoreBefore;
     }
 
     @Override
