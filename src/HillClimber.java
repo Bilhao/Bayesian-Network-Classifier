@@ -12,14 +12,14 @@ public class HillClimber {
 
     public OrientedGraph learn(Amostra amostra, int maxParents, int numRandomStarts) {
 
-        int n = amostra.element(0).length;   // Nº total de colunas
-        int classIdx = n - 1;                // índice da classe (última coluna)
+        int n = amostra.dim(); // Graph size (attributes + class)
+        int classIdx = n - 1; // índice da classe (última coluna)
 
         if (numRandomStarts < 1) { // garante que temos pelo menos um grafo inicial
             numRandomStarts = 1;
         }
 
-        OrientedGraph bestG = null;  // o melhor grafo encontrado
+        OrientedGraph bestG = null; // o melhor grafo encontrado
         double bestScore = Double.NEGATIVE_INFINITY;
 
         // 1) inicializar grafo vazio e testar
@@ -46,10 +46,7 @@ public class HillClimber {
     }
 
     /**
-     * Greedy hill climbing a partir de um grafo inicial:
-     * - testa todos os vizinhos (remove/invert/add)
-     * - aplica o melhor com delta>0
-     * - repete até não haver melhorias
+     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta>0 - repete até não haver melhorias
      */
     private OrientedGraph greedyFromStart(Amostra amostra, OrientedGraph start, int maxParents, int classIdx, int n) {
 
@@ -66,24 +63,29 @@ public class HillClimber {
                 ArrayList<Integer> childs = new ArrayList<>(g.children(o)); // cópia segura
 
                 for (int d : childs) {
-                    if (d == classIdx) continue; // não mexer em arestas que vão para a classe
+                    if (d == classIdx)
+                        continue; // não mexer em arestas que vão para a classe
                     // (se também não quiser mexer em arestas que saem da classe, isso já está garantido porque o< classIdx)
 
-                    double deltaRemove = g.MDLdelta(amostra, o, d, 0);
-                    if (deltaRemove > bestDelta) {
-                        bestDelta = deltaRemove;
-                        bestO = o;
-                        bestD = d;
-                        bestOp = 0;
-                    }
+                    boolean hasEdge = g.children(o).contains(d);
 
-                    if (canInvert(g, o, d, maxParents, classIdx)) {
-                        double deltaInvert = g.MDLdelta(amostra, o, d, 1);
-                        if (deltaInvert > bestDelta) {
-                            bestDelta = deltaInvert;
+                    if (hasEdge) {
+                        double deltaRemove = g.MDLdelta(amostra, o, d, 0);
+                        if (deltaRemove > bestDelta) {
+                            bestDelta = deltaRemove;
                             bestO = o;
                             bestD = d;
-                            bestOp = 1;
+                            bestOp = 0;
+                        }
+
+                        if (canInvert(g, o, d, maxParents, classIdx)) {
+                            double deltaInvert = g.MDLdelta(amostra, o, d, 1);
+                            if (deltaInvert > bestDelta) {
+                                bestDelta = deltaInvert;
+                                bestO = o;
+                                bestD = d;
+                                bestOp = 1;
+                            }
                         }
                     }
                 }
@@ -92,9 +94,12 @@ public class HillClimber {
             // 2) testar ADD para arestas que não existem (ignorando a classe)
             for (int o = 0; o <= classIdx - 1; o++) {
                 for (int d = 0; d <= classIdx - 1; d++) {
-                    if (o == d) continue;
-                    if (g.children(o).contains(d)) continue;
-                    if (!canAdd(g, o, d, maxParents, classIdx)) continue;
+                    if (o == d)
+                        continue;
+                    if (g.children(o).contains(d))
+                        continue;
+                    if (!canAdd(g, o, d, maxParents, classIdx))
+                        continue;
 
                     double deltaAdd = g.MDLdelta(amostra, o, d, 2);
                     if (deltaAdd > bestDelta) {
@@ -125,11 +130,7 @@ public class HillClimber {
     }
 
     /**
-     * Cria um grafo inicial aleatório:
-     * - adiciona sempre arestas C -> Xi (classe para todas as variáveis)
-     * - depois tenta adicionar arestas entre Xi respeitando:
-     *   * maxParents (ignorando a classe)
-     *   * aciclicidade
+     * Cria um grafo inicial aleatório: - adiciona sempre arestas C -> Xi (classe para todas as variáveis) - depois tenta adicionar arestas entre Xi respeitando: * maxParents (ignorando a classe) * aciclicidade
      */
     private OrientedGraph randomStart(int n, int classIdx, int maxParents) {
 
@@ -140,77 +141,87 @@ public class HillClimber {
             g.add_edge(classIdx, i);
         }
 
-        if (maxParents <= 0) return g;
+        if (maxParents <= 0)
+            return g;
 
         // Para cada nó d (atributo), escolhe um número alvo de pais (0..maxParents)
         for (int d = 0; d <= classIdx - 1; d++) {
-            int targetParents = (maxParents == 0) ? 0: rng.nextInt(maxParents +1);
+            int targetParents = (maxParents == 0) ? 0 : rng.nextInt(maxParents + 1);
 
             int tries = 0;
 
             // tenta adicionar pais até ou ter 2 pais ou dps de 50 tentativas
-            while (parentsCountIgnoringClass(g,d,classIdx) < targetParents && tries < 50){
+            while (parentsCountIgnoringClass(g, d, classIdx) < targetParents && tries < 50) {
                 int o = rng.nextInt(classIdx);
 
-                if (o == d) { tries ++; continue;}  // nao permitir ciclos 
+                if (o == d) {
+                    tries++;
+                    continue;
+                } // nao permitir ciclos
 
-                if (g.children(o).contains(d)) { tries++; continue;} // se ja existir o caminho o -> d, nao adicionar again
+                if (g.children(o).contains(d)) {
+                    tries++;
+                    continue;
+                } // se ja existir o caminho o -> d, nao adicionar again
 
-                if (canAdd(g, o, d, maxParents, classIdx)){ // se é valido adicionar, entao adiciona
-                    g.add_edge(o,d);
+                if (canAdd(g, o, d, maxParents, classIdx)) { // se é valido adicionar, entao adiciona
+                    g.add_edge(o, d);
                 }
 
-                tries++; 
+                tries++;
             }
         }
-        return g; 
+        return g;
     }
 
-    private OrientedGraph cloneGraph(OrientedGraph g, int n){
+    private OrientedGraph cloneGraph(OrientedGraph g, int n) {
         OrientedGraph copy = new OrientedGraph(n);
 
-        for (int o = 0; o < n; o ++){
+        for (int o = 0; o < n; o++) {
             for (int d : g.children(o)) {
                 copy.add_edge(o, d);
             }
         }
-        return copy; 
+        return copy;
     }
 
-    private int parentsCountIgnoringClass(OrientedGraph g, int node, int classIdx){
+    private int parentsCountIgnoringClass(OrientedGraph g, int node, int classIdx) {
         int count = 0;
-        for (int p : g.parents(node)){  //lista dos pais 
-            if (p != classIdx) count++;  // se o p nao for a classe, então conta
+        for (int p : g.parents(node)) { // lista dos pais
+            if (p != classIdx)
+                count++; // se o p nao for a classe, então conta
         }
         return count;
     }
 
-    private boolean canAdd(OrientedGraph g, int o, int d, int maxParents, int classIdx){
-        if (o == classIdx || d == classIdx) return false;  // as adições nao podem afetar a classe
+    private boolean canAdd(OrientedGraph g, int o, int d, int maxParents, int classIdx) {
+        if (o == classIdx || d == classIdx)
+            return false; // as adições nao podem afetar a classe
 
-        if (g.connected(d,o)) return false; // proibe self loops, tipo o -> o
+        if (g.connected(d, o))
+            return false; // proibe self loops, tipo o -> o
 
         return parentsCountIgnoringClass(g, d, classIdx) < maxParents;
     }
 
-    private boolean canInvert(OrientedGraph g, int o, int d, int maxParents, int classIdx){
-        if (o == classIdx || d == classIdx) return false; 
+    private boolean canInvert(OrientedGraph g, int o, int d, int maxParents, int classIdx) {
+        if (o == classIdx || d == classIdx)
+            return false;
 
-        g.remove_edge(o,d); 
-        boolean wouldCreateCycle = g.connected(o,d);
-        g.add_edge(o,d);
+        g.remove_edge(o, d);
+        boolean wouldCreateCycle = g.connected(o, d);
+        g.add_edge(o, d);
 
-        if (wouldCreateCycle) return false; 
+        if (wouldCreateCycle)
+            return false;
 
-        int parentsO = parentsCountIgnoringClass(g, o,classIdx);
+        int parentsO = parentsCountIgnoringClass(g, o, classIdx);
         return parentsO + 1 <= maxParents;
 
-
-
     }
-    /* =======================
-       SIMPLE SELF-TEST SECTION
-       ======================= */
+    /*
+     * ======================= SIMPLE SELF-TEST SECTION =======================
+     */
 
     public static void main(String[] args) {
 
@@ -218,17 +229,17 @@ public class HillClimber {
         // 3 features + 1 class (class is last index)
         Amostra a = new Amostra();
 
-        a.add(new int[]{0, 0, 0, 0});
-        a.add(new int[]{0, 1, 0, 0});
-        a.add(new int[]{1, 0, 1, 1});
-        a.add(new int[]{1, 1, 1, 1});
-        a.add(new int[]{0, 0, 1, 0});
-        a.add(new int[]{1, 0, 0, 1});
-        a.add(new int[]{0, 1, 1, 0});
-        a.add(new int[]{1, 1, 0, 1});
+        a.add(new int[] { 0, 0, 0, 0 });
+        a.add(new int[] { 0, 1, 0, 0 });
+        a.add(new int[] { 1, 0, 1, 1 });
+        a.add(new int[] { 1, 1, 1, 1 });
+        a.add(new int[] { 0, 0, 1, 0 });
+        a.add(new int[] { 1, 0, 0, 1 });
+        a.add(new int[] { 0, 1, 1, 0 });
+        a.add(new int[] { 1, 1, 0, 1 });
 
         // ---------- 2) Test MDLdelta undo safety ----------
-        OrientedGraph tg = new OrientedGraph(a.element(0).length);
+        OrientedGraph tg = new OrientedGraph(a.dim());
         tg.add_edge(0, 1);
         tg.add_edge(1, 2);
 
@@ -265,90 +276,27 @@ public class HillClimber {
         for (int o = 0; o < g.n; o++) {
             for (int d : g.children(o)) {
                 if (g.connected(d, o)) {
-                    throw new RuntimeException(
-                        "❌ Cycle detected involving edge " + o + " -> " + d
-                    );
+                    throw new RuntimeException("❌ Cycle detected involving edge " + o + " -> " + d);
                 }
             }
         }
     }
 
     // ---------- Helper: check maxParents ignoring class ----------
-    private static void checkMaxParentsIgnoringClass(OrientedGraph g,
-                                                     Amostra a,
-                                                     int maxParents) {
+    private static void checkMaxParentsIgnoringClass(OrientedGraph g, Amostra a, int maxParents) {
 
-        int classIdx = a.element(0).length - 1;
+        int classIdx = a.dim() - 1;
 
         for (int node = 0; node < classIdx; node++) { // only features
             int count = 0;
             for (int p : g.parents(node)) {
-                if (p != classIdx) count++;
+                if (p != classIdx)
+                    count++;
             }
             if (count > maxParents) {
-                throw new RuntimeException(
-                    "❌ Too many parents on node " + node + ": " + count
-                );
+                throw new RuntimeException("❌ Too many parents on node " + node + ": " + count);
             }
         }
     }
 
-
-
-
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -35,8 +35,8 @@ public class OrientedGraph {
      * Recebe dois nós e remove do grafo a aresta de um nó para outro.
      */
     public void remove_edge(int o, int d) {
-        this.adj.get(o).remove(d);
-        this.adjParents.get(d).remove(o);
+        this.adj.get(o).remove((Integer) d);
+        this.adjParents.get(d).remove((Integer) o);
     }
 
     /**
@@ -188,7 +188,7 @@ public class OrientedGraph {
      * Calcula (log2(N) / 2) * θ
      */
     double penalizacao(Amostra amostra) {
-        int D_c = amostra.domain(amostra.element(0).length - 1); // Domínio da variável de classificação
+        int D_c = amostra.domain(amostra.dim() - 1); // Domínio da variável de classificação
 
         double sum = 0.0;
         for (int i = 0; i < this.n - 1; i++) {
