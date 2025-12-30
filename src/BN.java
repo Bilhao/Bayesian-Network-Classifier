@@ -106,5 +106,27 @@ public class BN {
             }
         return p;
     }
+    public int classify(int[] xSemClasse) {
+        double bestProb = -1.0;
+        int bestClass = -1;
+        for(int c = 0; c < priorC.length; c++){ //percorre todas as classes possíveis
+            int[] x = new int[n];
+            for(int i = 0; i < C; i++){
+                x[i] = xSemClasse[i];
+            }
+            x[C] = c;
+            double probability = prob(x);
+            if (probability > bestProb) {
+                bestProb = probability;
+                bestClass = c;
+            }
+        }
+        return bestClass;
     
+    }
+        
 }
+
+
+
+                    
