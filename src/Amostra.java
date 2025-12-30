@@ -1,9 +1,19 @@
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.io.Serializable;
 
-public class Amostra {
+public class Amostra implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     ArrayList<int[]> vectorsList;
-    int[] max; // Array de inteiros que armazenará o máximo para cada posição
+    int[] max;
+
+    // Cache para o resultado dos counts (thread-safe)
+    private transient Map<String, Integer> countCache = new ConcurrentHashMap<>();
+    
+    // Cache para o resultado dos It() (thread-safe)
+    private transient Map<String, Double> itCache = new ConcurrentHashMap<>();
 
     public Amostra() {
         super();
@@ -11,13 +21,9 @@ public class Amostra {
         this.max = null;
     }
 
-    /**
-     * Recebe um vetor e adiciona-o à amostra.
-     * 
-     * Depois de adicionar o vetor, atualiza o array de máximos.
-     */
     public void add(int[] vector) {
         this.vectorsList.add(vector);
+
         if (this.max == null) {
             this.max = new int[vector.length];
             for (int i = 0; i < vector.length; i++) {
@@ -35,7 +41,7 @@ public class Amostra {
     public int length() {
         return this.vectorsList.size();
     }
-    
+
     public int dim() {
         return this.max.length;
     }
@@ -44,27 +50,18 @@ public class Amostra {
         return this.vectorsList.get(i);
     }
 
-    /**
-     * Recebe uma posição e retorna o domínio das variáveis nessa posição.
-     */
     public int domain(int varIdx) {
         return this.max[varIdx] + 1;
     }
 
-    /**
-     * Recebe uma lista de posições e retorna o domínio conjunto das variáveis nessas posições.
-     */
     public int domain(ArrayList<Integer> vars) {
         int r = 1;
         for (int i : vars) {
-            r = r * (this.max[i] + 1); // Assumimos sempre a existência de valores intermédios.
+            r = r * (this.max[i] + 1);
         }
         return r;
     }
 
-    /**
-     * Conta quantas vezes um certo valor ocorre na variável indicada.
-     */
     public int count(int var, int val) {
         int r = 0;
         for (int[] vector : this.vectorsList) {
@@ -75,12 +72,17 @@ public class Amostra {
         return r;
     }
 
-    /**
-     * Conta quantas vezes uma certa combinação de valores ocorre nas variáveis indicadas.
-     * 
-     * Exemplo: se vars = [0,2] e vals = [1,3], conta quantas amostras têm valor 1 na variável 0 e valor 3 na variável 2.
-     */
+
     public int count(ArrayList<Integer> vars, ArrayList<Integer> vals) {
+        if (countCache == null)
+            this.countCache = new ConcurrentHashMap<>();
+
+        String key = vars.toString() + ":" + vals.toString();
+        Integer cached = countCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+
         int r = 0;
         for (int[] vector : this.vectorsList) {
             boolean match = true;
@@ -94,6 +96,8 @@ public class Amostra {
                 r++;
             }
         }
+
+        countCache.put(key, r);
         return r;
     }
 
@@ -120,17 +124,39 @@ public class Amostra {
         return combinations;
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("Amostra [vectorsList=[");
-        for (int i = 0; i < vectorsList.size(); i++) {
-            sb.append(Arrays.toString(vectorsList.get(i)));
-            if (i < vectorsList.size() - 1) {
-                sb.append(", ");
-            }
+
+    public void clearCache() {
+        if (countCache == null) {
+            this.countCache = new ConcurrentHashMap<>();
+        } else {
+            countCache.clear();
         }
-        sb.append("], max=").append(Arrays.toString(max)).append("]");
-        return sb.toString();
+        if (itCache == null) {
+            this.itCache = new ConcurrentHashMap<>();
+        } else {
+            itCache.clear();
+        }
     }
 
+    public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
+        if (itCache == null) {
+            this.itCache = new ConcurrentHashMap<>();
+            return null;
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        return itCache.get(key);
+    }
+
+    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
+        if (itCache == null) {
+            this.itCache = new ConcurrentHashMap<>();
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        itCache.put(key, value);
+    }
+
+    @Override
+    public String toString() {
+        return "Amostra [Size=" + length() + ", Dim=" + dim() + "]";
+    }
 }

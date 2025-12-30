@@ -1,8 +1,9 @@
 import java.util.ArrayList;
 import java.util.LinkedList;
-import java.lang.Math;
+import java.io.Serializable;
 
-public class OrientedGraph {
+public class OrientedGraph implements Serializable {
+    private static final long serialVersionUID = 1L;
     int n; // Número de nós = dimensão do dataset excluindo a classe
     ArrayList<ArrayList<Integer>> adj;
     ArrayList<ArrayList<Integer>> adjParents;
@@ -119,57 +120,87 @@ public class OrientedGraph {
      * Calcula It(X_i; Π_i | C) = ∑ Pr(d_i, w_i, c) * log2( (Pr(d_i, w_i, c) * Pr(c)) / (Pr(d_i, c) * Pr(w_i, c)) )
      * 
      * É a informação mútua condicional entre o nó i e os seus pais, dado a classe c.
+     * 
+     * VERSÃO OPTIMIZADA: Faz uma única passagem pelos dados e usa cache.
      */
-    double It(Amostra amostra, int d_iIdx) {
-        double it = 0.0;
-        ArrayList<Integer> w_iIdx = parents(d_iIdx);
+    double It(Amostra amostra, int nodeIdx) {
+        ArrayList<Integer> parentsIdx = parents(nodeIdx);
+
+        // Verificar cache primeiro
+        Double cached = amostra.getCachedIt(nodeIdx, parentsIdx);
+        if (cached != null) {
+            return cached;
+        }
+
         int classIdx = amostra.element(0).length - 1;
+        int amostraLength = amostra.length();
 
-        for (int i = 0; i < amostra.domain(d_iIdx); i++) { // para cada valor di
-            for (ArrayList<Integer> w_i : amostra.combinations(w_iIdx)) { // para cada combinação de valores wi
-                for (int c = 0; c < amostra.domain(classIdx); c++) { // para cada valor c
+        int D_d = amostra.domain(nodeIdx);
+        int D_w = amostra.domain(parentsIdx);
+        int D_c = amostra.domain(classIdx);
 
-                    ArrayList<Integer> dwcVars = new ArrayList<>();
-                    ArrayList<Integer> dwcVals = new ArrayList<>();
-                    ArrayList<Integer> dcVars = new ArrayList<>();
-                    ArrayList<Integer> dcVals = new ArrayList<>();
-                    ArrayList<Integer> wcVars = new ArrayList<>();
-                    ArrayList<Integer> wcVals = new ArrayList<>();
-                    ArrayList<Integer> cVars = new ArrayList<>();
-                    ArrayList<Integer> cVals = new ArrayList<>();
+        // Tabelas de contagem - uma matriz tridimensional que vai guardar quantas vezes cada combinação de (d_i, w_i, classe) aparece
+        int[][][] count_dwc = new int[D_d][D_w][D_c];
 
-                    dwcVars.add(d_iIdx);
-                    dwcVars.addAll(w_iIdx);
-                    dwcVars.add(classIdx);
-                    dwcVals.add(i);
-                    dwcVals.addAll(w_i);
-                    dwcVals.add(c);
+        // Tabelas de contagem parciais - uma matriz bidimensional que vai guardar quantas vezes cada combinação de (d_i, classe) aparece
+        int[][] count_dc = new int[D_d][D_c];
 
-                    dcVars.add(d_iIdx);
-                    dcVars.add(classIdx);
-                    dcVals.add(i);
-                    dcVals.add(c);
+        // Tabelas de contagem parciais - uma matriz bidimensional que vai guardar quantas vezes cada combinação de (w_i, classe) aparece
+        int[][] count_wc = new int[D_w][D_c];
 
-                    wcVars.addAll(w_iIdx);
-                    wcVars.add(classIdx);
-                    wcVals.addAll(w_i);
-                    wcVals.add(c);
+        // Tabela de contagem parcial - um array unidimensional que vai guardar quantas vezes cada classe aparece
+        int[] count_c = new int[D_c];
 
-                    cVars.add(classIdx);
-                    cVals.add(c);
+        for (int[] vector : amostra.vectorsList) {
+            int d_val = vector[nodeIdx];
+            int c_val = vector[classIdx];
 
-                    double prdwc = (double) amostra.count(dwcVars, dwcVals) / amostra.length();
-                    double prdc = (double) amostra.count(dcVars, dcVals) / amostra.length();
-                    double prwc = (double) amostra.count(wcVars, wcVals) / amostra.length();
-                    double prc = (double) amostra.count(cVars, cVals) / amostra.length();
+            int w_idx = 0;
+            for (int pIdx : parentsIdx) {
+                w_idx = w_idx * amostra.domain(pIdx) + vector[pIdx];
+            }
 
-                    if (prdwc > 0 && prc > 0 && prdc > 0 && prwc > 0) {
-                        it += prdwc * log2((prdwc * prc) / (prdc * prwc));
-                    }
+            count_dwc[d_val][w_idx][c_val]++;
+        }
+
+        for (int d = 0; d < D_d; d++) {
+            for (int w = 0; w < D_w; w++) {
+                for (int c = 0; c < D_c; c++) {
+                    int cnt = count_dwc[d][w][c];
+                    count_dc[d][c] += cnt;
+                    count_wc[w][c] += cnt;
+                    count_c[c] += cnt;
                 }
             }
         }
 
+        // Calcular It usando as contagens
+        double it = 0.0;
+        for (int d = 0; d < D_d; d++) {
+            for (int w = 0; w < D_w; w++) {
+                for (int c = 0; c < D_c; c++) {
+                    int cnt_dwc = count_dwc[d][w][c];
+                    if (cnt_dwc == 0)
+                        continue;
+
+                    int cnt_dc = count_dc[d][c];
+                    int cnt_wc = count_wc[w][c];
+                    int cnt_c = count_c[c];
+
+                    // Probabilidades
+                    double pr_dwc = (double) cnt_dwc / amostraLength;
+                    double pr_dc = (double) cnt_dc / amostraLength;
+                    double pr_wc = (double) cnt_wc / amostraLength;
+                    double pr_c = (double) cnt_c / amostraLength;
+
+                    // Fórmula da informação mútua condicional
+                    if (pr_dc > 0 && pr_wc > 0 && pr_c > 0) {
+                        it += pr_dwc * log2((pr_dwc * pr_c) / (pr_dc * pr_wc));
+                    }
+                }
+            }
+        }
+        amostra.setCachedIt(nodeIdx, parentsIdx, it);
         return it;
     }
 
@@ -178,7 +209,7 @@ public class OrientedGraph {
      */
     double LL(Amostra amostra) {
         double sum = 0.0;
-        for (int i = 0; i < this.n - 1; i++) { // Para cada nó (excluindo o nó de classificação)
+        for (int i = 0; i < this.n; i++) {
             sum += It(amostra, i);
         }
         return amostra.length() * sum;
@@ -188,10 +219,10 @@ public class OrientedGraph {
      * Calcula (log2(N) / 2) * θ
      */
     double penalizacao(Amostra amostra) {
-        int D_c = amostra.domain(amostra.dim() - 1); // Domínio da variável de classificação
+        int D_c = amostra.domain(amostra.dim() - 1);
 
         double sum = 0.0;
-        for (int i = 0; i < this.n - 1; i++) {
+        for (int i = 0; i < this.n; i++) {
             int k_i = amostra.domain(i);
             int q_i = amostra.domain(parents(i));
             sum += (k_i - 1) * q_i * D_c;
@@ -228,23 +259,23 @@ public class OrientedGraph {
         double scoreAfter;
 
         if (op == 0) {
-            // Remover o → d significa que só d é afetado no score (perde um pai)
+            // Remover o→d: só d é afetado (perde um pai)
             scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            add_edge(o, d);
+            add_edge(o, d); // Reverter
         } else if (op == 1) {
-            // Inverter o → d para d → o significa que o e d são afetados no score
+            // Inverter o→d para d→o: o e d são afetados
             scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
             scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
-            invert_edge(d, o);
+            invert_edge(d, o); // Reverter
         } else {
-            // Adicionar o → d significa que só d é afetado no score (ganha um pai)
+            // Adicionar o→d: só d é afetado (ganha um pai)
             scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            remove_edge(o, d);
+            remove_edge(o, d); // Reverter
         }
 
         return scoreAfter - scoreBefore;
