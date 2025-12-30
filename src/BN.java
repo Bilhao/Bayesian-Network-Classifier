@@ -105,18 +105,6 @@ public class BN {
 
             }
         return p;
-    
     }
     
-
-    public static void main(String[] args){
-        Amostra a = ReadCSV.read("C:\\Users\\verso\\Downloads\\Bayesian-Network-Classifier-work\\Bayesian-Network-Classifier-work\\DataSets\\bcancer.csv");
-        OrientedGraph g = new OrientedGraph(a.element(0).length);
-
-        BN bn = new BN(a, g, 0.5);
-
-        int[] ex = a.element(0);
-
-        System.out.println(bn.prob(ex));
-    }
 }
