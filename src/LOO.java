@@ -12,7 +12,7 @@ public class LOO {
                 
                 }
             }
-            OrientedGraph grafoTeste = new OrientedGraph(amostra.element(0).length - 1);
+            OrientedGraph grafoTeste = new OrientedGraph(amostra.dim() - 1);
             BN BNTeste = new BN(treino, grafoTeste, S);
             int[] linhaTeste = amostra.element(i); //linha escolhida
             int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1); //remove a classe

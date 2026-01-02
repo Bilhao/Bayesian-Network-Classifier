@@ -1,6 +1,4 @@
 import javax.swing.*;
-import javax.swing.GroupLayout.Alignment;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
@@ -29,7 +27,10 @@ class ClassificationFrame extends JFrame {
     private JTextArea probabilitiesArea;
     private JButton classifyButton;
 
+    private BN network;
+    private Amostra trainingData;
     private ArrayList<JSpinner> parameterSpinners;
+    private String[] variableNames;
 
     public ClassificationFrame() {
         setTitle("Classificação com Redes de Bayes");
@@ -158,6 +159,7 @@ class ClassificationFrame extends JFrame {
         classifyButton.setFont(new Font("Default", Font.PLAIN, 10));
         classifyButton.setFocusable(false);
         classifyButton.setEnabled(false);
+        classifyButton.addActionListener(e -> classifyPatient());
 
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         rightButtons.add(clearButton);
@@ -181,16 +183,26 @@ class ClassificationFrame extends JFrame {
 
     private void loadNetwork() {
         JFileChooser chooser = new JFileChooser();
+        File dataSetsFolder = new File("TrainedBN");
+        if (dataSetsFolder.exists()) {
+            chooser.setCurrentDirectory(dataSetsFolder);
+        }
         chooser.setFileFilter(new FileNameExtensionFilter("Rede de Bayes (*.bn)", "bn"));
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
             try {
                 String networkPath = chooser.getSelectedFile().getAbsolutePath();
 
+                network = BN.load(networkPath);
                 networkFileField.setText(networkPath);
 
-                String samplePath = networkPath.replace(".bn", "_sample.dat");
-                
+                trainingData = network.amostra;
+
+                int n = network.amostra.dim();
+                variableNames = new String[n - 1];
+                for (int i = 0; i < n - 1; i++) {
+                    variableNames[i] = "X" + (i + 1);
+                }
 
                 createParameterFields();
                 classifyButton.setEnabled(true);
@@ -206,10 +218,60 @@ class ClassificationFrame extends JFrame {
         parametersPanel.removeAll();
         parameterSpinners.clear();
 
+        int n = network.amostra.dim();
+        int[] domains = network.amostra.max;
+
         parametersPanel.setLayout(new GridLayout(0, 4, 3, 3));
+
+        for (int i = 0; i < n - 1; i++) {
+            JPanel paramPanel = new JPanel(new BorderLayout(3, 0));
+            paramPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+            JLabel label = new JLabel(variableNames[i] + ":");
+            label.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+
+            int maxVal = Math.max(0, domains[i]);
+            JSpinner spinner = new JSpinner(new SpinnerNumberModel(0, 0, maxVal, 1));
+            parameterSpinners.add(spinner);
+
+            paramPanel.add(label, BorderLayout.WEST);
+            paramPanel.add(spinner, BorderLayout.CENTER);
+            parametersPanel.add(paramPanel);
+        }
 
         parametersPanel.revalidate();
         parametersPanel.repaint();
+    }
+
+    private void classifyPatient() {
+        if (network == null || trainingData == null) {
+            JOptionPane.showMessageDialog(this, "Carregue uma rede primeiro.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int n = network.amostra.dim();
+        int[] instance = new int[n - 1];
+
+        for (int i = 0; i < n - 1; i++) {
+            instance[i] = (Integer) parameterSpinners.get(i).getValue();
+        }
+
+        int predictedClass = network.classify(instance);
+        double[] probabilities = network.getProbabilities(instance);
+
+        classResultLabel.setText(String.valueOf(predictedClass));
+
+        double confidence = probabilities[predictedClass] * 100;
+        confidenceLabel.setText(String.format("%.1f%%", confidence));
+
+        StringBuilder probText = new StringBuilder();
+        for (int c = 0; c < probabilities.length; c++) {
+            probText.append(String.format("Classe %d: %.4f (%.2f%%)", c, probabilities[c], probabilities[c] * 100));
+            if (c == predictedClass)
+                probText.append(" *");
+            probText.append("\n");
+        }
+        probabilitiesArea.setText(probText.toString());
     }
 
     private void clearResults() {

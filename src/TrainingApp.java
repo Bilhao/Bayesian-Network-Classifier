@@ -2,9 +2,6 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.io.*;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.*;
 
 /**
  * Aplicacao de Treinamento de Redes de Bayes Classificadoras (BNC).
@@ -23,14 +20,18 @@ public class TrainingApp {
 class TrainingFrame extends JFrame {
     private JTextField fileField;
     private JTextField outputField;
-    private JSpinner maxParentsSpinner;
-    private JSpinner numGraphsSpinner;
+    private JTextField maxParentsField;
+    private JTextField numGraphsField;
     private JTextArea logArea;
     private JProgressBar progressBar;
     private JButton startButton;
+    private JButton stopButton;
     private JLabel statusLabel;
+    private volatile boolean stopRequested = false;
+    private SwingWorker<Void, String> currentWorker;
 
     private Amostra amostra;
+    private GreedyHillClimber ghc;
     private String selectedFilePath;
 
     public TrainingFrame() {
@@ -104,15 +105,15 @@ class TrainingFrame extends JFrame {
 
         JPanel maxParentsPanel = new JPanel(new BorderLayout(0, 3));
         maxParentsPanel.add(createLabel("Max. Pais:", 11, false), BorderLayout.NORTH);
-        maxParentsSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 2, 1));
-        maxParentsSpinner.setFont(new Font("Default", Font.PLAIN, 10));
-        maxParentsPanel.add(maxParentsSpinner, BorderLayout.CENTER);
+        maxParentsField = new JTextField("2");
+        maxParentsField.setFont(new Font("Default", Font.PLAIN, 10));
+        maxParentsPanel.add(maxParentsField, BorderLayout.CENTER);
 
         JPanel numGraphsPanel = new JPanel(new BorderLayout(0, 3));
         numGraphsPanel.add(createLabel("Grafos iniciais:", 11, false), BorderLayout.NORTH);
-        numGraphsSpinner = new JSpinner(new SpinnerNumberModel(1000, 1, null, 1));
-        numGraphsSpinner.setFont(new Font("Default", Font.PLAIN, 10));
-        numGraphsPanel.add(numGraphsSpinner, BorderLayout.CENTER);
+        numGraphsField = new JTextField("100");
+        numGraphsField.setFont(new Font("Default", Font.PLAIN, 10));
+        numGraphsPanel.add(numGraphsField, BorderLayout.CENTER);
 
         paramsPanel.add(maxParentsPanel);
         paramsPanel.add(numGraphsPanel);
@@ -159,6 +160,12 @@ class TrainingFrame extends JFrame {
             MainApp.main(new String[] {});
         });
 
+        stopButton = new JButton("■ Parar");
+        stopButton.setFocusable(false);
+        stopButton.setFont(new Font("Default", Font.PLAIN, 10));
+        stopButton.setEnabled(false);
+        stopButton.addActionListener(e -> stopLearning());
+
         startButton = new JButton("▶ Iniciar");
         startButton.setFocusable(false);
         startButton.setFont(new Font("Default", Font.PLAIN, 10));
@@ -171,6 +178,7 @@ class TrainingFrame extends JFrame {
 
         JPanel rightButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         rightButtons.add(clearButton);
+        rightButtons.add(stopButton);
         rightButtons.add(startButton);
 
         buttonPanel.add(backButton, BorderLayout.WEST);
@@ -191,7 +199,10 @@ class TrainingFrame extends JFrame {
 
     private void selectDataFile() {
         JFileChooser chooser = new JFileChooser();
-        chooser.setCurrentDirectory(new File("../DataSets"));
+        File dataSetsFolder = new File("DataSets");
+        if (dataSetsFolder.exists()) {
+            chooser.setCurrentDirectory(dataSetsFolder);
+        }
         chooser.setFileFilter(new FileNameExtensionFilter("Arquivos CSV", "csv"));
 
         if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -223,8 +234,127 @@ class TrainingFrame extends JFrame {
             return;
         }
 
+        stopRequested = false;
         startButton.setEnabled(false);
+        stopButton.setEnabled(true);
         progressBar.setValue(0);
+
+        currentWorker = new SwingWorker<Void, String>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    int maxParents = Integer.parseInt(maxParentsField.getText().trim());
+                    int numGraphs = Integer.parseInt(numGraphsField.getText().trim());
+
+                    if (maxParents < 0)
+                        throw new IllegalArgumentException("Max. Pais deve ser positivo.");
+                    if (numGraphs < 1)
+                        throw new IllegalArgumentException("Número de grafos deve ser >= 1.");
+
+                    publish("Carregando amostra...");
+                    setProgress(5);
+
+                    amostra = ReadCSV.read(selectedFilePath);
+
+                    publish("Amostra: " + amostra.length() + " instâncias, " + amostra.dim() + " variáveis");
+                    setProgress(10);
+
+                    ghc = new GreedyHillClimber(amostra, maxParents, numGraphs);
+                    long[] lastUpdate = new long[1];
+
+                    ghc.setListener((iteration, totalIterations, currentBestScore, timeElapsed, message) -> {
+                        long now = System.currentTimeMillis();
+                        if (message != null || iteration == totalIterations || now - lastUpdate[0] > 100) {
+                            lastUpdate[0] = now;
+
+                            int percent = (int) ((iteration / (double) totalIterations) * 100);
+                            int adjustedProgress = 15 + (int) (percent * 0.75);
+                            setProgress(adjustedProgress);
+
+                            String status = String.format("Iteração %d/%d | Tempo: %ds", iteration, totalIterations, timeElapsed / 1000);
+                            publish("STATUS:" + status);
+
+                            if (message != null) {
+                                publish(message);
+                            }
+                        }
+                    });
+
+                    publish("Treinando...");
+                    ghc.learn();
+
+                    setProgress(90);
+
+                    publish("Guardando rede...");
+                    String outputPath = outputField.getText();
+                    if (!outputPath.contains(File.separator) && !outputPath.contains("/")) {
+                        File trainedBNFolder = new File("TrainedBN");
+                        if (!trainedBNFolder.exists()) {
+                            trainedBNFolder.mkdirs();
+                        }
+                        outputPath = trainedBNFolder.getAbsolutePath() + File.separator + outputPath;
+                    }
+
+                    String samplePath = outputPath.replace(".bn", "_sample.dat");
+                    try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(samplePath))) {
+                        out.writeObject(amostra);
+                    }
+
+                    BN bn = new BN(amostra, ghc.bestGraph, 0.5);
+                    bn.save(outputPath);
+
+                    publish("Rede guardada: " + outputPath);
+                    setProgress(100);
+
+                    publish("----------------------------- Concluído -----------------------------");
+                    publish("Melhor Grafo: " + ghc.bestGraph);
+                    publish("MDL: " + String.format("%.4f", ghc.bestMDL));
+
+                } catch (Exception e) {
+                    publish("ERRO: " + e.getMessage());
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void process(java.util.List<String> chunks) {
+                for (String message : chunks) {
+                    if (message.startsWith("STATUS:")) {
+                        statusLabel.setText(message.substring(7));
+                    } else {
+                        log(message);
+                    }
+                }
+            }
+
+            @Override
+            protected void done() {
+                startButton.setEnabled(true);
+                stopButton.setEnabled(false);
+                if (stopRequested) {
+                    statusLabel.setText("Interrompido");
+                } else {
+                    statusLabel.setText("Concluído");
+                }
+            }
+        };
+
+        currentWorker.addPropertyChangeListener(evt -> {
+            if ("progress".equals(evt.getPropertyName())) {
+                progressBar.setValue((Integer) evt.getNewValue());
+            }
+        });
+
+        currentWorker.execute();
+    }
+
+    private void stopLearning() {
+        stopRequested = true;
+        if (currentWorker != null) {
+            currentWorker.cancel(true);
+        }
+        log("Treino interrompido.");
     }
 
     private void log(String message) {

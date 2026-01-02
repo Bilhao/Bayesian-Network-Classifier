@@ -8,9 +8,6 @@ public class Amostra implements Serializable {
 
     ArrayList<int[]> vectorsList;
     int[] max;
-
-    // Cache para o resultado dos counts (thread-safe)
-    private transient Map<String, Integer> countCache = new ConcurrentHashMap<>();
     
     // Cache para o resultado dos It() (thread-safe)
     private transient Map<String, Double> itCache = new ConcurrentHashMap<>();
@@ -74,15 +71,6 @@ public class Amostra implements Serializable {
 
 
     public int count(ArrayList<Integer> vars, ArrayList<Integer> vals) {
-        if (countCache == null)
-            this.countCache = new ConcurrentHashMap<>();
-
-        String key = vars.toString() + ":" + vals.toString();
-        Integer cached = countCache.get(key);
-        if (cached != null) {
-            return cached;
-        }
-
         int r = 0;
         for (int[] vector : this.vectorsList) {
             boolean match = true;
@@ -96,8 +84,6 @@ public class Amostra implements Serializable {
                 r++;
             }
         }
-
-        countCache.put(key, r);
         return r;
     }
 
@@ -126,11 +112,6 @@ public class Amostra implements Serializable {
 
 
     public void clearCache() {
-        if (countCache == null) {
-            this.countCache = new ConcurrentHashMap<>();
-        } else {
-            countCache.clear();
-        }
         if (itCache == null) {
             this.itCache = new ConcurrentHashMap<>();
         } else {

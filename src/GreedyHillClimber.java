@@ -1,0 +1,172 @@
+import java.util.Random;
+
+public class GreedyHillClimber {
+    Amostra amostra;
+    int maxParents;
+    int numGraphs;
+
+    OrientedGraph bestGraph; // o melhor grafo encontrado
+    double bestMDL = Double.NEGATIVE_INFINITY;
+
+    private Listener listener;
+
+    public interface Listener {
+        void onProgress(int iteration, int totalIterations, double currentBestScore, long timeElapsed, String message);
+    }
+
+    public void setListener(Listener listener) {
+        this.listener = listener;
+    }
+
+    public GreedyHillClimber(Amostra amostra, int maxParents, int numGraphs) {
+        super();
+        this.amostra = amostra;
+        this.maxParents = maxParents;
+        this.numGraphs = numGraphs;
+    }
+
+    public OrientedGraph learn() {
+        long startTime = System.currentTimeMillis();
+
+        amostra.clearCache();
+
+        int n = amostra.dim() - 1; // tamanho do grafo
+
+        if (numGraphs < 1) { // garante que temos pelo menos um grafo inicial
+            numGraphs = 1;
+        }
+
+        for (int i = 0; i < numGraphs; i++) {
+            final int currentIndex = i;
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+
+            OrientedGraph graph;
+            if (currentIndex == 0) {
+                graph = new OrientedGraph(n); // grafo vazio
+            } else {
+                graph = randomGraph(n); // grafo aleatório
+            }
+
+            graph = performGreedy(amostra, graph, maxParents, n);
+            double score = graph.MDL(amostra);
+
+            if (score > bestMDL) {
+                bestMDL = score;
+                bestGraph = graph;
+            }
+
+            if (listener != null) {
+                listener.onProgress(currentIndex, numGraphs, bestMDL, System.currentTimeMillis() - startTime, null);
+            }
+        }
+
+        return bestGraph;
+    }
+
+    /**
+     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta>0 - repete até não haver melhorias
+     */
+    private OrientedGraph performGreedy(Amostra amostra, OrientedGraph graph, int maxParents, int n) {
+
+        while (true) {
+            if (Thread.currentThread().isInterrupted()) {
+                break;
+            }
+            double maxDelta = 0.0;
+            int bestO = -1;
+            int bestD = -1;
+            int bestOp = -1; // 0=REMOVE, 1=INVERT, 2=ADD
+
+            // 1) testar REMOVE e INVERT em arestas existentes
+            for (int o = 0; o < n; o++) {
+                for (int d = 0; d < n; d++) {
+                    if (o == d)
+                        continue;
+
+                    boolean hasEdge = graph.children(o).contains(d);
+
+                    if (hasEdge) {
+                        double delta = graph.MDLdelta(amostra, o, d, 0);
+                        if (delta > maxDelta) {
+                            maxDelta = delta;
+                            bestO = o;
+                            bestD = d;
+                            bestOp = 0;
+                        }
+
+                        if (graph.parents(o).size() < maxParents && !createsCycle(graph, o, d, 1)) {
+                            delta = graph.MDLdelta(amostra, o, d, 1);
+                            if (delta > maxDelta) {
+                                maxDelta = delta;
+                                bestO = o;
+                                bestD = d;
+                                bestOp = 1;
+                            }
+                        }
+                    } else {
+                        if (graph.parents(d).size() < maxParents && !createsCycle(graph, o, d, 2)) {
+                            double delta = graph.MDLdelta(amostra, o, d, 2);
+                            if (delta > maxDelta) {
+                                maxDelta = delta;
+                                bestO = o;
+                                bestD = d;
+                                bestOp = 2;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (maxDelta <= 0.0) {
+                break;
+            } else {
+                // aplicar o melhor movimento permanentemente
+                if (bestOp == 0) {
+                    graph.remove_edge(bestO, bestD);
+                } else if (bestOp == 1) {
+                    graph.invert_edge(bestO, bestD);
+                } else { // bestOp == 2
+                    graph.add_edge(bestO, bestD);
+                }
+            }
+        }
+        return graph;
+    }
+
+    /**
+     * Cria um grafo inicial aleatório: - adiciona sempre arestas C -> Xi (classe para todas as variáveis) - depois tenta adicionar arestas entre Xi respeitando: * maxParents (ignorando a classe) * aciclicidade
+     */
+    private OrientedGraph randomGraph(int n) {
+
+        OrientedGraph g = new OrientedGraph(n);
+        Random rand = new Random();
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == j)
+                    continue;
+                if (rand.nextBoolean()) {
+                    if (g.parents(j).size() < maxParents && !g.connected(j, i)) {
+                        g.add_edge(i, j);
+                    }
+                }
+            }
+        }
+        return g;
+    }
+
+    private boolean createsCycle(OrientedGraph g, int o, int d, int op) {
+        if (op == 1) {
+            g.remove_edge(o, d);
+            boolean hasCycle = g.connected(d, o);
+            g.add_edge(o, d);
+            return hasCycle;
+        }
+        if (op == 2) {
+            return g.connected(d, o);
+        }
+        return false;
+    }
+}
