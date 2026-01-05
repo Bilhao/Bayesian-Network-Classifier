@@ -1,28 +1,37 @@
 import java.util.Arrays;
+import java.io.IOException;
 
-public class LOO { 
-    public static double LeaveOneOut(Amostra amostra, double S) {
-        int acertos = 0; //numero de classificação corretas
-        int N = amostra.length(); //numero de linhas
-        for (int i = 0; i < N; i++) { //usar cada linha
-            Amostra treino = new Amostra();
-            for (int j = 0; j < N; j++) { //adiciona todas as linhas exceto a escolhida
-                if (j!=i) {
-                    treino.add(amostra.element(j));
-                
-                }
-            }
-            OrientedGraph grafoTeste = new OrientedGraph(amostra.dim() - 1);
-            BN BNTeste = new BN(treino, grafoTeste, S);
-            int[] linhaTeste = amostra.element(i); //linha escolhida
-            int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1); //remove a classe
-            int classePrevista = BNTeste.classify(iSemClasse);//classifica o exemplo teste
-            int classeReal = linhaTeste[linhaTeste.length -1]; //ultima coluna da linha
+public class LOO {
+    public static double LeaveOneOut(Amostra amostra, String bnFilePath) throws IOException, ClassNotFoundException {
+        int acertos = 0;
+        int n = amostra.length();
+
+        BN bnLoaded = BN.load(bnFilePath);
+
+        for (int i = 0; i < n; i++) {
+            int[] linhaTeste = amostra.element(i);
+            int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1);
+
+            int classePrevista = bnLoaded.classify(iSemClasse);
+            int classeReal = linhaTeste[linhaTeste.length - 1];
 
             if (classePrevista == classeReal) {
-                acertos ++;
+                acertos++;
             }
         }
-        return acertos/ (double) N;
+        return acertos / (double) n;
+    }
+
+    public static void main(String[] args) {
+        Amostra amostra = ReadCSV.read("DataSets/bcancer.csv");
+        String bnFile = "TrainedBN/bcancer_1000000.bn";
+
+        try {
+            double acertos = LeaveOneOut(amostra, bnFile);
+            System.out.println("Accuracy: " + String.format("%.2f", acertos * 100) + "%");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Erro: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

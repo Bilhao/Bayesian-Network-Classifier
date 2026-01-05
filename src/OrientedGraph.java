@@ -120,8 +120,6 @@ public class OrientedGraph implements Serializable {
      * Calcula It(X_i; Π_i | C) = ∑ Pr(d_i, w_i, c) * log2( (Pr(d_i, w_i, c) * Pr(c)) / (Pr(d_i, c) * Pr(w_i, c)) )
      * 
      * É a informação mútua condicional entre o nó i e os seus pais, dado a classe c.
-     * 
-     * VERSÃO OPTIMIZADA: Faz uma única passagem pelos dados e usa cache.
      */
     double It(Amostra amostra, int nodeIdx) {
         ArrayList<Integer> parentsIdx = parents(nodeIdx);
@@ -263,21 +261,20 @@ public class OrientedGraph implements Serializable {
             scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            add_edge(o, d); // Reverter
+            add_edge(o, d);
         } else if (op == 1) {
             // Inverter o→d para d→o: o e d são afetados
             scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
             scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
-            invert_edge(d, o); // Reverter
+            invert_edge(d, o);
         } else {
             // Adicionar o→d: só d é afetado (ganha um pai)
             scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
-            remove_edge(o, d); // Reverter
+            remove_edge(o, d);
         }
-
         return scoreAfter - scoreBefore;
     }
 

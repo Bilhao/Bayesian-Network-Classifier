@@ -1,5 +1,5 @@
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.io.Serializable;
 
@@ -9,8 +9,8 @@ public class Amostra implements Serializable {
     ArrayList<int[]> vectorsList;
     int[] max;
     
-    // Cache para o resultado dos It() (thread-safe)
-    private transient Map<String, Double> itCache = new ConcurrentHashMap<>();
+    // Cache para o resultado dos It()
+    private transient Map<String, Double> itCache = new HashMap<>();
 
     public Amostra() {
         super();
@@ -113,7 +113,7 @@ public class Amostra implements Serializable {
 
     public void clearCache() {
         if (itCache == null) {
-            this.itCache = new ConcurrentHashMap<>();
+            this.itCache = new HashMap<>();
         } else {
             itCache.clear();
         }
@@ -121,7 +121,7 @@ public class Amostra implements Serializable {
 
     public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
         if (itCache == null) {
-            this.itCache = new ConcurrentHashMap<>();
+            this.itCache = new HashMap<>();
             return null;
         }
         String key = nodeIdx + ":" + parents.toString();
@@ -130,7 +130,7 @@ public class Amostra implements Serializable {
 
     public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
         if (itCache == null) {
-            this.itCache = new ConcurrentHashMap<>();
+            this.itCache = new HashMap<>();
         }
         String key = nodeIdx + ":" + parents.toString();
         itCache.put(key, value);
