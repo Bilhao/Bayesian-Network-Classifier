@@ -160,7 +160,7 @@ public class GreedyHillClimber {
     private boolean createsCycle(OrientedGraph g, int o, int d, int op) {
         if (op == 1) {
             g.remove_edge(o, d);
-            boolean hasCycle = g.connected(d, o);
+            boolean hasCycle = g.connected(o, d);
             g.add_edge(o, d);
             return hasCycle;
         }
