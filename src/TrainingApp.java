@@ -299,11 +299,6 @@ class TrainingFrame extends JFrame {
                         outputPath = trainedBNFolder.getAbsolutePath() + File.separator + outputPath;
                     }
 
-                    String samplePath = outputPath.replace(".bn", "_sample.dat");
-                    try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(samplePath))) {
-                        out.writeObject(amostra);
-                    }
-
                     BN bn = new BN(amostra, ghc.bestGraph, 0.5);
                     bn.save(outputPath);
 
