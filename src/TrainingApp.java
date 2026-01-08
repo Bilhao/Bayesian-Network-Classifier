@@ -217,6 +217,10 @@ class TrainingFrame extends JFrame {
 
     private void selectOutputFile() {
         JFileChooser chooser = new JFileChooser();
+        File trainedBNFolder = new File("TrainedBN");
+        if (trainedBNFolder.exists()) {
+            chooser.setCurrentDirectory(trainedBNFolder);
+        }
         chooser.setFileFilter(new FileNameExtensionFilter("Rede de Bayes", "bn"));
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -246,8 +250,8 @@ class TrainingFrame extends JFrame {
                     int maxParents = Integer.parseInt(maxParentsField.getText().trim());
                     int numGraphs = Integer.parseInt(numGraphsField.getText().trim());
 
-                    if (maxParents < 0)
-                        throw new IllegalArgumentException("Max. Pais deve ser positivo.");
+                    if (maxParents < 0 || maxParents > 2)
+                        throw new IllegalArgumentException("Número máximo de pais inválido.");
                     if (numGraphs < 1)
                         throw new IllegalArgumentException("Número de grafos deve ser >= 1.");
 
