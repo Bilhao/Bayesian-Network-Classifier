@@ -9,23 +9,23 @@ import java.util.HashMap;
 
 public class BN implements java.io.Serializable {
     Amostra amostra;
-    OrientedGraph grafo;
+    Grafoo grafo;
     double S;
     int n; // número de variáveis (colunas)
-    int C; // índice da variável classe no vetor de dados
+    int classIdx; // índice da variável classe no vetor de dados
     double[] priorC; // array que guarda a distribuição de probabilidade da classe
     Map<Integer, Map<String, double[]>> cpt;
     // cpt(conditional probability table) - tipo a memoria da rede
     // - recebe integer (indíce da varável Xi), devolve string e double[] (pais de Xi + valor da classe)
 
-    public BN(Amostra amostra, OrientedGraph grafo, double S) { // construtor
+    public BN(Amostra amostra, Grafoo grafo, double S) { // construtor
         this.amostra = amostra; // guarda dados
         this.grafo = grafo; // guarda o grafo que define a estrutura da rede
         this.S = S; // parâmetro das pseudo-contagens
 
-        this.n = amostra.element(0).length; // numero total de variáveis
-        this.C = n - 1;// valor da última coluna
-        this.priorC = new double[amostra.max[C] + 1]; // +1 porque valores começam no 0
+        this.n = amostra.dim(); // numero total de variáveis
+        this.classIdx = n - 1;// valor da última coluna
+        this.priorC = new double[amostra.max[classIdx] + 1]; // +1 porque valores começam no 0
         this.cpt = new HashMap<>();// inicializa o mapa da cpt
 
         buildPrior();
@@ -36,17 +36,17 @@ public class BN implements java.io.Serializable {
         int N = amostra.length(); // número de amostras (linhas)
         double den = N + S * priorC.length; // denominador
         for (int k = 0; k < priorC.length; k++) {
-            int numCount = amostra.count(C, k);// numero de exemplos com classe k
+            int numCount = amostra.count(classIdx, k);// numero de exemplos com classe k
             double num = numCount + S; // numerador
             priorC[k] = num / den;// guarda a probabilidade na posição k
         }
     }
 
     private void buildCPT() { // aprende a probabilidade do resto
-        for (int k = 0; k < C; k++) {
+        for (int k = 0; k < classIdx; k++) {
             ArrayList<Integer> pais = grafo.parents(k);
             ArrayList<Integer> paiscomclasse = new ArrayList<>(pais);
-            paiscomclasse.add(C);
+            paiscomclasse.add(classIdx);
 
             ArrayList<ArrayList<Integer>> ws = amostra.combinations(paiscomclasse); // conjunto de combinações
             Map<String, double[]> tabelaK = cpt.get(k);
@@ -87,10 +87,10 @@ public class BN implements java.io.Serializable {
     }
 
     public double prob(int[] x) {
-        int classe = x[C]; // extrai a classe do vetor
+        int classe = x[classIdx]; // extrai a classe do vetor
         double p = priorC[classe]; // começa com o prior da classe P(C)
 
-        for (int k = 0; k < C; k++) { // percorre todas as variaveis exceto a classe
+        for (int k = 0; k < classIdx; k++) { // percorre todas as variaveis exceto a classe
             ArrayList<Integer> pais = grafo.parents(k);
 
             ArrayList<Integer> valores = new ArrayList<>();
@@ -116,10 +116,10 @@ public class BN implements java.io.Serializable {
         int bestClass = -1;
         for (int c = 0; c < priorC.length; c++) { // percorre todas as classes possíveis
             int[] x = new int[n]; // vetor atributos mais classe
-            for (int i = 0; i < C; i++) { // copia atributos para o vetor completo
+            for (int i = 0; i < classIdx; i++) { // copia atributos para o vetor completo
                 x[i] = xSemClasse[i];
             }
-            x[C] = c; // fixa a classe para testar na ultima posição
+            x[classIdx] = c; // fixa a classe para testar na ultima posição
             double probability = prob(x); // calcula a probabilidade conjunta
             if (probability > bestProb) {
                 bestProb = probability;
@@ -129,18 +129,16 @@ public class BN implements java.io.Serializable {
         return bestClass; // devolve a classe
     }
 
-    public double[] getProbabilities(int[] xSemClasse) {
+    public double[] getProbabilities(int[] instance) {
         double[] probs = new double[priorC.length];
         double sum = 0.0;
 
+        // Cria um vetor com um elemento a mais que a instância, reservado para adicionar um valor
+        int[] vector = new int[instance.length + 1];
+        System.arraycopy(instance, 0, vector, 0, instance.length);
         for (int c = 0; c < priorC.length; c++) {
-            int[] x = new int[n];
-            for (int i = 0; i < C; i++) {
-                x[i] = xSemClasse[i];
-            }
-            x[C] = c;
-
-            probs[c] = prob(x);
+            vector[classIdx] = c;
+            probs[c] = prob(vector);
             sum += probs[c];
         }
 

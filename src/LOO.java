@@ -24,7 +24,7 @@ public class LOO {
 
     public static void main(String[] args) {
         Amostra amostra = ReadCSV.read("DataSets/bcancer.csv");
-        String bnFile = "TrainedBN/bcancer_1000000.bn";
+        String bnFile = "TrainedBN/bcancer_network.bn";
 
         try {
             double acertos = LeaveOneOut(amostra, bnFile);

@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.io.Serializable;
 
-public class OrientedGraph implements Serializable {
+public class Grafoo implements Serializable {
     private static final long serialVersionUID = 1L;
     int n; // Número de nós = dimensão do dataset excluindo a classe
     ArrayList<ArrayList<Integer>> adj;
@@ -11,7 +11,7 @@ public class OrientedGraph implements Serializable {
     /**
      * Método construtor que recebe um natural n e retorna o grafo com n nós e sem arestas (vazio).
      */
-    public OrientedGraph(int n) {
+    public Grafoo(int n) {
         super();
         this.n = n;
         this.adj = new ArrayList<>(n);
@@ -257,19 +257,19 @@ public class OrientedGraph implements Serializable {
         double scoreAfter;
 
         if (op == 0) {
-            // Remover o→d: só d é afetado (perde um pai)
+            // Remover o → d: só d é afetado (perde um pai)
             scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
             add_edge(o, d);
         } else if (op == 1) {
-            // Inverter o→d para d→o: o e d são afetados
+            // Inverter o → d para d → o: o e d são afetados
             scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
             scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(d, o);
         } else {
-            // Adicionar o→d: só d é afetado (ganha um pai)
+            // Adicionar o → d: só d é afetado (ganha um pai)
             scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
             scoreAfter = nodeScore(amostra, d);

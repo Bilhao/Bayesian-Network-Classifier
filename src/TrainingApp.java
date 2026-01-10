@@ -97,7 +97,7 @@ class TrainingFrame extends JFrame {
         mainPanel.add(Box.createVerticalStrut(15));
 
         // Parametros
-        mainPanel.add(createLabel("Parametros:", 13, false));
+        mainPanel.add(createLabel("Parâmetros:", 13, false));
         mainPanel.add(Box.createVerticalStrut(5));
         JPanel paramsPanel = new JPanel(new GridLayout(1, 4, 10, 0));
         paramsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);

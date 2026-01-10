@@ -69,7 +69,6 @@ public class Amostra implements Serializable {
         return r;
     }
 
-
     public int count(ArrayList<Integer> vars, ArrayList<Integer> vals) {
         int r = 0;
         for (int[] vector : this.vectorsList) {

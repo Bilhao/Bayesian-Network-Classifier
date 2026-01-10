@@ -5,7 +5,7 @@ public class GreedyHillClimber {
     int maxParents;
     int numGraphs;
 
-    OrientedGraph bestGraph; // o melhor grafo encontrado
+    Grafoo bestGraph; // o melhor grafo encontrado
     double bestMDL = Double.NEGATIVE_INFINITY;
 
     private Listener listener;
@@ -25,7 +25,7 @@ public class GreedyHillClimber {
         this.numGraphs = numGraphs;
     }
 
-    public OrientedGraph learn() {
+    public Grafoo learn() {
         long startTime = System.currentTimeMillis();
 
         amostra.clearCache();
@@ -42,9 +42,9 @@ public class GreedyHillClimber {
                 break;
             }
 
-            OrientedGraph graph;
+            Grafoo graph;
             if (currentIndex == 0) {
-                graph = new OrientedGraph(n); // grafo vazio
+                graph = new Grafoo(n); // grafo vazio
             } else {
                 graph = randomGraph(n); // grafo aleatório
             }
@@ -66,9 +66,9 @@ public class GreedyHillClimber {
     }
 
     /**
-     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta>0 - repete até não haver melhorias
+     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta - repete até não haver melhorias
      */
-    private OrientedGraph performGreedy(Amostra amostra, OrientedGraph graph, int maxParents, int n) {
+    private Grafoo performGreedy(Amostra amostra, Grafoo graph, int maxParents, int n) {
 
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
@@ -138,9 +138,9 @@ public class GreedyHillClimber {
     /**
      * Cria um grafo inicial aleatório: - adiciona sempre arestas C -> Xi (classe para todas as variáveis) - depois tenta adicionar arestas entre Xi respeitando: * maxParents (ignorando a classe) * aciclicidade
      */
-    private OrientedGraph randomGraph(int n) {
+    private Grafoo randomGraph(int n) {
 
-        OrientedGraph g = new OrientedGraph(n);
+        Grafoo g = new Grafoo(n);
         Random rand = new Random();
 
         for (int i = 0; i < n; i++) {
@@ -157,7 +157,7 @@ public class GreedyHillClimber {
         return g;
     }
 
-    private boolean createsCycle(OrientedGraph g, int o, int d, int op) {
+    private boolean createsCycle(Grafoo g, int o, int d, int op) {
         if (op == 1) {
             g.remove_edge(o, d);
             boolean hasCycle = g.connected(o, d);
