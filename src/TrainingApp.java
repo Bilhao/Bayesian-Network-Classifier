@@ -22,6 +22,8 @@ class TrainingFrame extends JFrame {
     private JTextField outputField;
     private JTextField maxParentsField;
     private JTextField numGraphsField;
+    private JTextField pseudoCountField;
+    private JCheckBox optimizeSCheckbox;
     private JTextArea logArea;
     private JProgressBar progressBar;
     private JButton startButton;
@@ -110,15 +112,31 @@ class TrainingFrame extends JFrame {
         maxParentsPanel.add(maxParentsField, BorderLayout.CENTER);
 
         JPanel numGraphsPanel = new JPanel(new BorderLayout(0, 3));
-        numGraphsPanel.add(createLabel("Grafos iniciais:", 11, false), BorderLayout.NORTH);
+        numGraphsPanel.add(createLabel("No. Grafos:", 11, false), BorderLayout.NORTH);
         numGraphsField = new JTextField("100");
         numGraphsField.setFont(new Font("Default", Font.PLAIN, 10));
         numGraphsPanel.add(numGraphsField, BorderLayout.CENTER);
 
+        JPanel pseudoCountPanel = new JPanel(new BorderLayout(0, 3));
+        pseudoCountPanel.add(createLabel("Pseudo-Contagem S:", 11, false), BorderLayout.NORTH);
+        pseudoCountField = new JTextField("0.5");
+        pseudoCountField.setFont(new Font("Default", Font.PLAIN, 10));
+        pseudoCountPanel.add(pseudoCountField, BorderLayout.CENTER);
+
+        JPanel optimizePanel = new JPanel(new BorderLayout(0, 3));
+        optimizePanel.add(createLabel(" ", 11, false), BorderLayout.NORTH); // Espaçador
+        optimizeSCheckbox = new JCheckBox("Otimizar S");
+        optimizeSCheckbox.setFont(new Font("Default", Font.PLAIN, 11));
+        optimizeSCheckbox.setFocusable(false);
+        optimizeSCheckbox.addActionListener(e -> {
+            pseudoCountField.setEnabled(!optimizeSCheckbox.isSelected());
+        });
+        optimizePanel.add(optimizeSCheckbox, BorderLayout.CENTER);
+
         paramsPanel.add(maxParentsPanel);
         paramsPanel.add(numGraphsPanel);
-        paramsPanel.add(new JLabel());
-        paramsPanel.add(new JLabel());
+        paramsPanel.add(pseudoCountPanel);
+        paramsPanel.add(optimizePanel);
         mainPanel.add(paramsPanel);
         mainPanel.add(Box.createVerticalStrut(15));
 
@@ -299,11 +317,26 @@ class TrainingFrame extends JFrame {
                         outputPath = trainedBNFolder.getAbsolutePath() + File.separator + outputPath;
                     }
 
-                    BN bn = new BN(amostra, ghc.bestGraph, 0.5);
-                    
-                    publish("Encontrando melhor Pseudo-Contagem (S)...");
-                    bn.optimizeS(amostra);
-                    publish("Melhor S: " + String.format("%.2f", bn.S));
+                    double initialS = 0.5;
+                    if (!optimizeSCheckbox.isSelected()) {
+                        try {
+                            initialS = Double.parseDouble(pseudoCountField.getText().trim());
+                            if (initialS < 0)
+                                throw new IllegalArgumentException("S deve ser >= 0.");
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Valor de S inválido.");
+                        }
+                    }
+
+                    BN bn = new BN(amostra, ghc.bestGraph, initialS);
+
+                    if (optimizeSCheckbox.isSelected()) {
+                        publish("Encontrando melhor Pseudo-Contagem (S)...");
+                        //bn.optimizeS(amostra);
+                        publish("Melhor S: " + String.format("%.2f", bn.S));
+                    } else {
+                        publish("Pseudo-Contagem (S) fixa: " + initialS);
+                    }
 
                     bn.save(outputPath);
 

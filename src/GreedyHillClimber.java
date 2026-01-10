@@ -28,6 +28,8 @@ public class GreedyHillClimber {
     public Grafoo learn() {
         long startTime = System.currentTimeMillis();
 
+        amostra.clearCache();
+
         int n = amostra.dim() - 1; // tamanho do grafo
 
         if (numGraphs < 1) { // garante que temos pelo menos um grafo inicial

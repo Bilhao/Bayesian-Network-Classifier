@@ -1,208 +1,191 @@
+import java.util.Map;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
-import java.io.*;
 
-public class BN2 implements Serializable {
-    private static final long serialVersionUID = 1L;
-    public Grafoo graph;
-    public double S;
+public class BN2 implements java.io.Serializable {
+    Amostra amostra;
+    Grafoo grafo;
+    double S;
 
-    // Armazena o dominio de cada variavel
-    public int[] domains;
+    // Array que guarda a distribuição de probabilidade da classe
+    double[] classProb;
 
-    // Armazena as contagens: Lista (por variavel) -> Mapa (Configuracao Pais -> Contagens Valores)
-    public List<HashMap<String, int[]>> counts;
+    // Conditional Probability Table (CPT)
+    Map<Integer, Map<String, double[]>> cpt;
 
-    public BN2(Amostra amostra, Grafoo graph, double S) {
+    public BN2(Amostra amostra, Grafoo grafo, double S) {
         super();
-        this.graph = graph;
+        this.amostra = amostra;
+        this.grafo = grafo;
         this.S = S;
 
-        preCalculateCounts(amostra);
+        this.classProb = buildClassProbabilities();
+        this.cpt = buildCPT();
     }
 
-    private void preCalculateCounts(Amostra amostra) {
+    private double[] buildClassProbabilities() {
         int n = amostra.dim();
-        this.domains = new int[n];
-        this.counts = new ArrayList<>();
+        int classIdx = n - 1;
 
-        for (int i = 0; i < n; i++) {
-            domains[i] = amostra.domain(i);
-            counts.add(new HashMap<>());
+        double[] classProb = new double[amostra.domain(classIdx)];
+
+        for (int i = 0; i < classProb.length; i++) {
+            classProb[i] = (double) amostra.count(classIdx, i) / amostra.length();
         }
+        return classProb;
+    }
 
-        // Itera sobre todas as instancias da amostra para contar
-        for (int k = 0; k < amostra.length(); k++) {
-            int[] instance = amostra.element(k);
-            int classeIdx = n - 1; // Assumindo ultima coluna como classe
+    private Map<Integer, Map<String, double[]>> buildCPT() {
+        int n = amostra.dim();
+        int classIdx = n - 1;
 
-            // Contagem da Classe
-            HashMap<String, int[]> classMap = counts.get(classeIdx);
-            String classKey = "";
-            if (!classMap.containsKey(classKey)) {
-                classMap.put(classKey, new int[domains[classeIdx]]);
-            }
-            classMap.get(classKey)[instance[classeIdx]]++;
+        Map<Integer, Map<String, double[]>> cpt = new HashMap<>();
 
-            for (int i = 0; i < n - 1; i++) {
-                String key = generateParentKey(i, classeIdx, instance);
+        for (int i = 0; i < classIdx; i++) {
+            ArrayList<Integer> parents = new ArrayList<>(grafo.parents(i));
+            parents.add(classIdx); // Adiciona a classe como pai
 
-                HashMap<String, int[]> varMap = counts.get(i);
-                if (!varMap.containsKey(key)) {
-                    varMap.put(key, new int[domains[i]]);
+            ArrayList<ArrayList<Integer>> combinations = amostra.combinations(parents);
+            Map<String, double[]> varTable = new HashMap<>();
+            cpt.put(i, varTable);
+
+            int D_i = amostra.domain(i);
+
+            for (ArrayList<Integer> value : combinations) {
+                double[] probs = new double[D_i];
+
+                ArrayList<Integer> vars = new ArrayList<>();
+                vars.add(i);
+                vars.addAll(parents);
+
+                ArrayList<Integer> vals = new ArrayList<>();
+                vals.add(0);
+                vals.addAll(value);
+
+                for (int d = 0; d < D_i; d++) {
+                    vals.set(0, d);
+                    probs[d] = (amostra.count(vars, vals) + S) / (amostra.count(parents, value) + S * D_i);
                 }
-                varMap.get(key)[instance[i]]++;
+                varTable.put(value.toString(), probs);
             }
         }
+        return cpt;
     }
 
-    private String generateParentKey(int varIdx, int classIdx, int[] instance) {
-        ArrayList<Integer> parents = new ArrayList<>(graph.parents(varIdx));
-        parents.add(classIdx); // Classe é sempre pai
+    public double prob(int[] instance) {
+        int n = instance.length;
+        int classIdx = n - 1;
 
-        StringBuilder keyBuilder = new StringBuilder();
-        for (int p : parents) {
-            keyBuilder.append(instance[p]).append(",");
-        }
-        return keyBuilder.toString();
-    }
+        int classe = instance[classIdx]; // extrai a classe do vetor
+        double p = classProb[classe]; // começa com o prior da classe P(C)
 
-    /**
-     * Calcula Pr(x_1, ..., x_n, c) = Pr(c) * Produto(i=1 ate n) Pr(x_i | Pais(x_i)) Em que Pr(x_i | Pais(x_i)) = (N(x_i, Pais(x_i)) + S) / (N(Pais(x_i)) + S * |D_xi|)
-     */
-    public double prob(int[] vector) {
-        int classeIdx = vector.length - 1;
+        for (int i = 0; i < classIdx; i++) { // percorre todas as variaveis exceto a classe
+            ArrayList<Integer> parents = new ArrayList<>(grafo.parents(i));
 
-        // 1. Probabilidade da Classe
-        int classeVal = vector[classeIdx];
-        HashMap<String, int[]> classMap = counts.get(classeIdx);
-        int[] classCounts = classMap.get("");
-
-        int N_c = 0;
-        int total_c = 0;
-        if (classCounts != null) {
-            N_c = classCounts[classeVal];
-            for (int c : classCounts)
-                total_c += c;
-        }
-        double prc = (double) N_c / total_c;
-
-        double prob = 1.0;
-        for (int i = 0; i < vector.length - 1; i++) {
-            ArrayList<Integer> parents = new ArrayList<>(graph.parents(i));
-            parents.add(classeIdx);
-
-            StringBuilder keyBuilder = new StringBuilder();
-            for (int p : parents) {
-                keyBuilder.append(vector[p]).append(",");
+            ArrayList<Integer> values = new ArrayList<>();
+            for (int idx : parents) {
+                values.add(instance[idx]);
             }
-            String key = keyBuilder.toString();
+            values.add(classe);
 
-            HashMap<String, int[]> varMap = counts.get(i);
-            int[] valCounts = varMap.get(key);
+            String key = values.toString(); // converte a combinação numa chave para a CPT
+            double[] probs = cpt.get(i).get(key); // obtem a distribuição
+            if (probs == null)
+                return 0.0; // se a combinação nunca foi observada, probabilidade é zero
+            int val = instance[i]; // valor observado da variavel
 
-            int N_xi_pa = 0;
-            int N_pa = 0;
-
-            if (valCounts != null) {
-                N_xi_pa = valCounts[vector[i]];
-                for (int c : valCounts)
-                    N_pa += c;
-            }
-
-            prob *= (N_xi_pa + S) / (N_pa + S * domains[i]);
+            p *= probs[val];// multiplica
         }
-        return prc * prob;
+        return p;
     }
 
-    /**
-     * Retorna as probabilidades para cada classe dada uma instância.
-    */
-   public double[] getProbabilities(int[] instance) {
-       int classeIdx = instance.length;
-       int numClasses = domains[classeIdx];
-       double[] probs = new double[numClasses];
-       double totalProb = 0.0;
-       
-       // Cria um vetor com um elemento a mais que a instância, reservado para adicionar um valor
-       int[] vector = new int[instance.length + 1];
-       System.arraycopy(instance, 0, vector, 0, instance.length);
-       
-       for (int c = 0; c < numClasses; c++) {
-           vector[classeIdx] = c;
-           probs[c] = prob(vector);
-           totalProb += probs[c];
+    public int classify(int[] instance) {
+        int n = instance.length;
+        int classIdx = n - 1;
+
+        double bestProb = -1.0; // nestes dois probabilidades nem classe podem ter valores negativos então garante que este será sempre substituido
+        int bestClass = -1;
+        for (int c = 0; c < classProb.length; c++) { // percorre todas as classes possíveis
+            int[] x = new int[n]; // vetor atributos mais classe
+            for (int i = 0; i < classIdx; i++) { // copia atributos para o vetor completo
+                x[i] = instance[i];
+            }
+            x[classIdx] = c; // fixa a classe para testar na ultima posição
+            double probability = prob(x); // calcula a probabilidade conjunta
+            if (probability > bestProb) {
+                bestProb = probability;
+                bestClass = c; // caso a probabilidade seja maior diz que esta é a classe correta
+            }
         }
-        
-        if (totalProb > 0) {
-            for (int c = 0; c < numClasses; c++) {
-                probs[c] /= totalProb;
+        return bestClass; // devolve a classe
+    }
+
+    public double[] getProbabilities(int[] instance) {
+        int classIdx = instance.length - 1;
+
+        double[] probs = new double[classProb.length];
+        double sum = 0.0;
+
+        // Cria um vetor com um elemento a mais que a instância, reservado para adicionar um valor
+        int[] vector = new int[instance.length + 1];
+
+        for (int c = 0; c < classProb.length; c++) {
+            vector[classIdx] = c;
+            probs[c] = prob(vector);
+            sum += probs[c];
+        }
+
+        if (sum > 0) {
+            for (int c = 0; c < probs.length; c++) {
+                probs[c] /= sum;
             }
         }
         return probs;
     }
-    
-    public int classify(int[] vector) {
-        int classeIdx = vector.length;
-        int[] a = new int[vector.length + 1];
-        for (int i = 0; i < vector.length; i++) {
-            a[i] = vector[i];
-        }
-        
-        double maxProb = -1.0;
-        int bestClass = -1;
-        
-        for (int c = 0; c < domains[classeIdx]; c++) {
-            a[a.length - 1] = c;
-            double p = prob(a);
-            if (p > maxProb) {
-                maxProb = p;
-                bestClass = c;
-            }
-        }
-        return bestClass;
-    }
-    
+
     /**
-     * Otimiza o parametro S testando valores entre 0.1 e 5.0 na amostra fornecida.
+     * Otimiza o parametro S testando valores entre 0.1 e 2 na amostra fornecida.
      */
-    public void optimizeS(Amostra validationData) {
+    public void optimizeS(Amostra amostra) {
         double bestS = 0.5;
         double bestAccuracy = -1.0;
- 
-        // Loop de 0.01 a 5.0 com passo 0.01
-        for (double s = 0.01; s <= 5.01; s += 0.01) { // 5 para garantir que 5.0 é incluido
+
+        for (double s = 0.1; s <= 2; s += 0.1) {
             this.S = s;
-            int hits = 0;
-            int n = validationData.length();
- 
-            for (int k = 0; k < n; k++) {
-                int[] instance = validationData.element(k);
-                // Copia instancia sem a classe para classificar
-                int[] instanceNoClass = new int[instance.length - 1];
-                System.arraycopy(instance, 0, instanceNoClass, 0, instance.length - 1);
- 
-                int predicted = classify(instanceNoClass);
-                int actual = instance[instance.length - 1];
- 
-                if (predicted == actual) {
-                    hits++;
+            this.cpt = buildCPT();
+
+            int acertos = 0;
+
+            for (int i = 0; i < amostra.length(); i++) {
+                int[] linhaTeste = amostra.element(i);
+                int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1);
+
+                int classePrevista = classify(iSemClasse);
+                int classeReal = linhaTeste[linhaTeste.length - 1];
+
+                if (classePrevista == classeReal) {
+                    acertos++;
                 }
             }
- 
-            double accuracy = (double) hits / n;
+            double accuracy = (double) acertos / amostra.length();
             if (accuracy > bestAccuracy) {
                 bestAccuracy = accuracy;
                 bestS = s;
             }
         }
         this.S = bestS;
+        this.cpt = buildCPT();
     }
-    
+
     /**
      * Guarda a rede em um arquivo.
-    */
+     */
     public void save(String filename) throws IOException {
         try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
             out.writeObject(this);
@@ -216,9 +199,5 @@ public class BN2 implements Serializable {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
             return (BN2) in.readObject();
         }
-    }
-
-    public String toString() {
-        return "BN [graph=" + graph + ", S=" + S + "]";
     }
 }

@@ -9,6 +9,9 @@ public class Amostra implements Serializable {
     ArrayList<int[]> vectorsList;
     int[] max;
 
+    // Cache para o resultado dos It(), movido de volta para Amostra para persistir entre grafos
+    private transient Map<String, Double> itCache = new HashMap<>();
+
     public Amostra() {
         super();
         this.vectorsList = new ArrayList<int[]>();
@@ -83,9 +86,6 @@ public class Amostra implements Serializable {
         return r;
     }
 
-    /**
-     * Retorna as combinações de valores possível dado uma lista de posições
-     */
     public ArrayList<ArrayList<Integer>> combinations(ArrayList<Integer> vars) {
         int combinationsLength = domain(vars);
         ArrayList<ArrayList<Integer>> combinations = new ArrayList<>();
@@ -104,6 +104,31 @@ public class Amostra implements Serializable {
             combinations.add(value);
         }
         return combinations;
+    }
+
+    public void clearCache() {
+        if (itCache == null) {
+            this.itCache = new java.util.HashMap<>();
+        } else {
+            itCache.clear();
+        }
+    }
+
+    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
+        if (itCache == null) {
+            this.itCache = new java.util.HashMap<>();
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        itCache.put(key, value);
+    }
+
+    public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
+        if (itCache == null) {
+            this.itCache = new java.util.HashMap<>();
+            return null;
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        return itCache.get(key);
     }
 
     @Override
