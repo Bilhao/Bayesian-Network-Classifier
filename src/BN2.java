@@ -140,7 +140,6 @@ public class BN2 implements Serializable {
                 probs[c] /= totalProb;
             }
         }
-        
         return probs;
     }
     
@@ -172,8 +171,8 @@ public class BN2 implements Serializable {
         double bestS = 0.5;
         double bestAccuracy = -1.0;
  
-        // Loop de 0.1 a 5.0 com passo 0.1
-        for (double s = 0.01; s <= 5.01; s += 0.01) { // 5.05 para garantir que 5.0 eh incluido
+        // Loop de 0.01 a 5.0 com passo 0.01
+        for (double s = 0.01; s <= 5.01; s += 0.01) { // 5 para garantir que 5.0 é incluido
             this.S = s;
             int hits = 0;
             int n = validationData.length();
@@ -213,9 +212,9 @@ public class BN2 implements Serializable {
     /**
      * Carrega a rede de um arquivo.
      */
-    public static BN load(String filename) throws IOException, ClassNotFoundException {
+    public static BN2 load(String filename) throws IOException, ClassNotFoundException {
         try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
-            return (BN) in.readObject();
+            return (BN2) in.readObject();
         }
     }
 

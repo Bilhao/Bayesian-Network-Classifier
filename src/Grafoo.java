@@ -1,9 +1,12 @@
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.io.Serializable;
 
 public class Grafoo implements Serializable {
     private static final long serialVersionUID = 1L;
+
     int n; // Número de nós = dimensão do dataset excluindo a classe
     ArrayList<ArrayList<Integer>> adj;
     ArrayList<ArrayList<Integer>> adjParents;
@@ -83,26 +86,8 @@ public class Grafoo implements Serializable {
      * Recebe dois nós e retorna true se existe um caminho de um nó para outro.
      */
     public boolean connected(int o, int d) {
-        if (o == d)
-            return true;
-
-        LinkedList<Integer> queue = new LinkedList<>();
-        boolean[] visited = new boolean[this.n];
-
-        queue.add(o);
-        visited[o] = true;
-        while (!queue.isEmpty()) {
-            int current = queue.removeFirst();
-            if (current == d)
-                return true;
-            for (int child : children(current)) {
-                if (!visited[child]) {
-                    visited[child] = true;
-                    queue.add(child);
-                }
-            }
-        }
-        return false;
+        if (o == d) return true;
+        return BFS(o).contains(d);
     }
 
     /**
@@ -116,6 +101,34 @@ public class Grafoo implements Serializable {
         return Math.log(x) / Math.log(2);
     }
 
+    // Cache para o resultado dos It()
+    private transient Map<String, Double> itCache = new HashMap<>();
+
+    public void clearCache() {
+        if (itCache == null) {
+            this.itCache = new HashMap<>();
+        } else {
+            itCache.clear();
+        }
+    }
+
+    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
+        if (itCache == null) {
+            this.itCache = new HashMap<>();
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        itCache.put(key, value);
+    }
+
+    public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
+        if (itCache == null) {
+            this.itCache = new HashMap<>();
+            return null;
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        return itCache.get(key);
+    }
+
     /**
      * Calcula It(X_i; Π_i | C) = ∑ Pr(d_i, w_i, c) * log2( (Pr(d_i, w_i, c) * Pr(c)) / (Pr(d_i, c) * Pr(w_i, c)) )
      * 
@@ -125,7 +138,7 @@ public class Grafoo implements Serializable {
         ArrayList<Integer> parentsIdx = parents(nodeIdx);
 
         // Verificar cache primeiro
-        Double cached = amostra.getCachedIt(nodeIdx, parentsIdx);
+        Double cached = getCachedIt(nodeIdx, parentsIdx);
         if (cached != null) {
             return cached;
         }
@@ -198,7 +211,7 @@ public class Grafoo implements Serializable {
                 }
             }
         }
-        amostra.setCachedIt(nodeIdx, parentsIdx, it);
+        setCachedIt(nodeIdx, parentsIdx, it);
         return it;
     }
 
@@ -280,6 +293,6 @@ public class Grafoo implements Serializable {
 
     @Override
     public String toString() {
-        return "OrientedGraph [n=" + n + ", adj=" + adj + "]";
+        return "Grafoo [n=" + n + ", adj=" + adj + "]";
     }
 }

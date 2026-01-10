@@ -300,6 +300,11 @@ class TrainingFrame extends JFrame {
                     }
 
                     BN bn = new BN(amostra, ghc.bestGraph, 0.5);
+                    
+                    publish("Encontrando melhor Pseudo-Contagem (S)...");
+                    bn.optimizeS(amostra);
+                    publish("Melhor S: " + String.format("%.2f", bn.S));
+
                     bn.save(outputPath);
 
                     publish("Rede guardada: " + outputPath);

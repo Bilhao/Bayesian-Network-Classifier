@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class BN implements java.io.Serializable {
     Amostra amostra;
     Grafoo grafo;
     double S;
+
     int n; // número de variáveis (colunas)
     int classIdx; // índice da variável classe no vetor de dados
     double[] priorC; // array que guarda a distribuição de probabilidade da classe
@@ -18,15 +20,15 @@ public class BN implements java.io.Serializable {
     // cpt(conditional probability table) - tipo a memoria da rede
     // - recebe integer (indíce da varável Xi), devolve string e double[] (pais de Xi + valor da classe)
 
-    public BN(Amostra amostra, Grafoo grafo, double S) { // construtor
+    public BN(Amostra amostra, Grafoo grafo, double S) {
         this.amostra = amostra; // guarda dados
         this.grafo = grafo; // guarda o grafo que define a estrutura da rede
         this.S = S; // parâmetro das pseudo-contagens
 
         this.n = amostra.dim(); // numero total de variáveis
-        this.classIdx = n - 1;// valor da última coluna
+        this.classIdx = n - 1; // valor da última coluna
         this.priorC = new double[amostra.max[classIdx] + 1]; // +1 porque valores começam no 0
-        this.cpt = new HashMap<>();// inicializa o mapa da cpt
+        this.cpt = new HashMap<>(); // inicializa o mapa da cpt
 
         buildPrior();
         buildCPT();
@@ -38,7 +40,7 @@ public class BN implements java.io.Serializable {
         for (int k = 0; k < priorC.length; k++) {
             int numCount = amostra.count(classIdx, k);// numero de exemplos com classe k
             double num = numCount + S; // numerador
-            priorC[k] = num / den;// guarda a probabilidade na posição k
+            priorC[k] = num / den; // guarda a probabilidade na posição k
         }
     }
 
@@ -148,6 +150,38 @@ public class BN implements java.io.Serializable {
             }
         }
         return probs;
+    }
+
+    /**
+     * Otimiza o parametro S testando valores entre 0.1 e 2 na amostra fornecida.
+     */
+    public void optimizeS(Amostra amostra) {
+        double bestS = 0.5;
+        double bestAccuracy = -1.0;
+
+        for (double s = 0.1; s <= 2; s += 0.1) {
+            this.S = s;
+            int acertos = 0;
+            int n = amostra.length();
+
+            for (int i = 0; i < n; i++) {
+                int[] linhaTeste = amostra.element(i);
+                int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1);
+
+                int classePrevista = classify(iSemClasse);
+                int classeReal = linhaTeste[linhaTeste.length - 1];
+
+                if (classePrevista == classeReal) {
+                    acertos++;
+                }
+            }
+            double accuracy = (double) acertos / n;
+            if (accuracy > bestAccuracy) {
+                bestAccuracy = accuracy;
+                bestS = s;
+            }
+        }
+        this.S = bestS;
     }
 
     /**

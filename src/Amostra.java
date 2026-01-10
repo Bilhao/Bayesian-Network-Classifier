@@ -8,9 +8,6 @@ public class Amostra implements Serializable {
 
     ArrayList<int[]> vectorsList;
     int[] max;
-    
-    // Cache para o resultado dos It()
-    private transient Map<String, Double> itCache = new HashMap<>();
 
     public Amostra() {
         super();
@@ -107,32 +104,6 @@ public class Amostra implements Serializable {
             combinations.add(value);
         }
         return combinations;
-    }
-
-
-    public void clearCache() {
-        if (itCache == null) {
-            this.itCache = new HashMap<>();
-        } else {
-            itCache.clear();
-        }
-    }
-
-    public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
-        if (itCache == null) {
-            this.itCache = new HashMap<>();
-            return null;
-        }
-        String key = nodeIdx + ":" + parents.toString();
-        return itCache.get(key);
-    }
-
-    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
-        if (itCache == null) {
-            this.itCache = new HashMap<>();
-        }
-        String key = nodeIdx + ":" + parents.toString();
-        itCache.put(key, value);
     }
 
     @Override
