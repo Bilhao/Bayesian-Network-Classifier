@@ -87,32 +87,36 @@ public class BN implements java.io.Serializable {
 
             String key = valores.toString(); // converte a combinação numa chave para a CPT
             double[] probs = cpt.get(i).get(key);// obtem a distribuição
-            if (probs == null)
-                return 0.0; // se a combinação nunca foi observada, probabilidade é zero
-            int val = instance[i]; // valor observado da variavel
-
-            p *= probs[val];// multiplica pela probabilidade condicional correspondente
+            if (probs == null) {
+                // se a combinação nunca foi observada, aplica suavização (0 + S)/(0 + S * D_i) = 1/D_i
+                p *= 1.0 / amostra.domain(i);
+            } else {
+                int val = instance[i]; // valor observado da variavel
+                p *= probs[val];// multiplica pela probabilidade condicional correspondente
+            }
 
         }
         return p;
     }
 
     public int classify(int[] instance) {
-        double bestProb = -1.0; // nestes dois probabilidades nem classe podem ter valores negativos então garante que este será sempre substituido
+        double bestProb = -1.0;
         int bestClass = -1;
-        for (int c = 0; c < classProb.length; c++) { // percorre todas as classes possíveis
-            int[] x = new int[n]; // vetor atributos mais classe
-            for (int i = 0; i < classIdx; i++) { // copia atributos para o vetor completo
-                x[i] = instance[i];
-            }
-            x[classIdx] = c; // fixa a classe para testar na ultima posição
-            double probability = prob(x); // calcula a probabilidade conjunta
-            if (probability > bestProb) {
-                bestProb = probability;
-                bestClass = c; // caso a probabilidade seja maior diz que esta é a classe correta
+
+        int[] x = new int[instance.length + 1];
+        for (int i = 0; i < instance.length; i++) {
+            x[i] = instance[i];
+        }
+
+        for (int c = 0; c < amostra.domain(classIdx); c++) {
+            x[classIdx] = c;
+            double prob = prob(x);
+            if (prob > bestProb) {
+                bestProb = prob;
+                bestClass = c;
             }
         }
-        return bestClass; // devolve a classe
+        return bestClass;
     }
 
     public double[] getProbabilities(int[] instance) {
@@ -169,6 +173,7 @@ public class BN implements java.io.Serializable {
             }
         }
         this.S = bestS;
+        buildCPT(); // Atualiza a CPT com o melhor S encontrado
     }
 
     /**
