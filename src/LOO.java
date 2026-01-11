@@ -1,18 +1,27 @@
 import java.util.Arrays;
-import java.io.IOException;
+import java.util.List;
 
 public class LOO {
-    public static double LeaveOneOut(Amostra amostra, String bnFilePath) throws IOException, ClassNotFoundException {
+
+    public static double LeaveOneOut(Amostra amostra, int numGraphs, int maxParents) {
         int acertos = 0;
         int n = amostra.length();
 
-        BN bnLoaded = BN.load(bnFilePath);
+        System.out.println("Executando LOO (n=" + n + ")...");
 
         for (int i = 0; i < n; i++) {
+            Amostra trainingData = amostra.without(i);
+
+            GreedyHillClimber ghc = new GreedyHillClimber(trainingData, maxParents, numGraphs);
+            ghc.learn();
+            Grafoo bestGraph = ghc.bestGraph;
+
+            BN bn = new BN(trainingData, bestGraph, 0.5);
+            // bn.optimizeS(trainingData);
+
             int[] linhaTeste = amostra.element(i);
             int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1);
-
-            int classePrevista = bnLoaded.classify(iSemClasse);
+            int classePrevista = bn.classify(iSemClasse);
             int classeReal = linhaTeste[linhaTeste.length - 1];
 
             if (classePrevista == classeReal) {
@@ -23,15 +32,26 @@ public class LOO {
     }
 
     public static void main(String[] args) {
-        Amostra amostra = ReadCSV.read("DataSets/bcancer.csv");
-        String bnFile = "TrainedBN/bcancer_1000000.bn";
+        List<String> files = Arrays.asList("DataSets/bcancer.csv", "DataSets/diabetes.csv", "DataSets/hepatitis.csv", "DataSets/letter.csv", "DataSets/satimage.csv", "DataSets/soybean-large.csv", "DataSets/thyroid.csv");
 
-        try {
-            double acertos = LeaveOneOut(amostra, bnFile);
-            System.out.println("Accuracy: " + String.format("%.2f", acertos * 100) + "%");
-        } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Erro: " + e.getMessage());
-            e.printStackTrace();
+        int numGraphs = 50;
+        int maxParents = 2;
+
+        for (String file : files) {
+            Amostra amostra = ReadCSV.read(file);
+            try {
+                long startTime = System.currentTimeMillis();
+                double acertos = LeaveOneOut(amostra, numGraphs, maxParents);
+                long elapsed = System.currentTimeMillis() - startTime;
+
+                System.out.println("Dataset: " + file);
+                System.out.println("Acertos (Accuracy): " + String.format("%.2f", acertos * 100) + "%");
+                System.out.println("Tempo: " + (elapsed / 1000) + "s");
+                System.out.println("--------------------------------------------------");
+            } catch (Exception e) {
+                System.err.println("Erro ao processar " + file + ": " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 }

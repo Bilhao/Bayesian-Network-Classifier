@@ -22,6 +22,8 @@ class TrainingFrame extends JFrame {
     private JTextField outputField;
     private JTextField maxParentsField;
     private JTextField numGraphsField;
+    private JTextField pseudoCountField;
+    private JCheckBox optimizeSCheckbox;
     private JTextArea logArea;
     private JProgressBar progressBar;
     private JButton startButton;
@@ -97,7 +99,7 @@ class TrainingFrame extends JFrame {
         mainPanel.add(Box.createVerticalStrut(15));
 
         // Parametros
-        mainPanel.add(createLabel("Parametros:", 13, false));
+        mainPanel.add(createLabel("Parâmetros:", 13, false));
         mainPanel.add(Box.createVerticalStrut(5));
         JPanel paramsPanel = new JPanel(new GridLayout(1, 4, 10, 0));
         paramsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -110,15 +112,31 @@ class TrainingFrame extends JFrame {
         maxParentsPanel.add(maxParentsField, BorderLayout.CENTER);
 
         JPanel numGraphsPanel = new JPanel(new BorderLayout(0, 3));
-        numGraphsPanel.add(createLabel("Grafos iniciais:", 11, false), BorderLayout.NORTH);
+        numGraphsPanel.add(createLabel("No. Grafos:", 11, false), BorderLayout.NORTH);
         numGraphsField = new JTextField("100");
         numGraphsField.setFont(new Font("Default", Font.PLAIN, 10));
         numGraphsPanel.add(numGraphsField, BorderLayout.CENTER);
 
+        JPanel pseudoCountPanel = new JPanel(new BorderLayout(0, 3));
+        pseudoCountPanel.add(createLabel("Pseudo-Contagem S:", 11, false), BorderLayout.NORTH);
+        pseudoCountField = new JTextField("0.5");
+        pseudoCountField.setFont(new Font("Default", Font.PLAIN, 10));
+        pseudoCountPanel.add(pseudoCountField, BorderLayout.CENTER);
+
+        JPanel optimizePanel = new JPanel(new BorderLayout(0, 3));
+        optimizePanel.add(createLabel(" ", 11, false), BorderLayout.NORTH); // Espaçador
+        optimizeSCheckbox = new JCheckBox("Otimizar S");
+        optimizeSCheckbox.setFont(new Font("Default", Font.PLAIN, 11));
+        optimizeSCheckbox.setFocusable(false);
+        optimizeSCheckbox.addActionListener(e -> {
+            pseudoCountField.setEnabled(!optimizeSCheckbox.isSelected());
+        });
+        optimizePanel.add(optimizeSCheckbox, BorderLayout.CENTER);
+
         paramsPanel.add(maxParentsPanel);
         paramsPanel.add(numGraphsPanel);
-        paramsPanel.add(new JLabel());
-        paramsPanel.add(new JLabel());
+        paramsPanel.add(pseudoCountPanel);
+        paramsPanel.add(optimizePanel);
         mainPanel.add(paramsPanel);
         mainPanel.add(Box.createVerticalStrut(15));
 
@@ -217,6 +235,10 @@ class TrainingFrame extends JFrame {
 
     private void selectOutputFile() {
         JFileChooser chooser = new JFileChooser();
+        File trainedBNFolder = new File("TrainedBN");
+        if (trainedBNFolder.exists()) {
+            chooser.setCurrentDirectory(trainedBNFolder);
+        }
         chooser.setFileFilter(new FileNameExtensionFilter("Rede de Bayes", "bn"));
 
         if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
@@ -246,8 +268,8 @@ class TrainingFrame extends JFrame {
                     int maxParents = Integer.parseInt(maxParentsField.getText().trim());
                     int numGraphs = Integer.parseInt(numGraphsField.getText().trim());
 
-                    if (maxParents < 0)
-                        throw new IllegalArgumentException("Max. Pais deve ser positivo.");
+                    if (maxParents < 0 || maxParents > 2)
+                        throw new IllegalArgumentException("Número máximo de pais inválido.");
                     if (numGraphs < 1)
                         throw new IllegalArgumentException("Número de grafos deve ser >= 1.");
 
@@ -259,10 +281,12 @@ class TrainingFrame extends JFrame {
                     publish("Amostra: " + amostra.length() + " instâncias, " + amostra.dim() + " variáveis");
                     setProgress(10);
 
+                    long totalStartTime = System.currentTimeMillis();
+
                     ghc = new GreedyHillClimber(amostra, maxParents, numGraphs);
                     long[] lastUpdate = new long[1];
 
-                    ghc.setListener((iteration, totalIterations, currentBestScore, timeElapsed, message) -> {
+                    ghc.setListener((iteration, totalIterations, message) -> {
                         long now = System.currentTimeMillis();
                         if (message != null || iteration == totalIterations || now - lastUpdate[0] > 100) {
                             lastUpdate[0] = now;
@@ -271,7 +295,7 @@ class TrainingFrame extends JFrame {
                             int adjustedProgress = 15 + (int) (percent * 0.75);
                             setProgress(adjustedProgress);
 
-                            String status = String.format("Iteração %d/%d | Tempo: %ds", iteration, totalIterations, timeElapsed / 1000);
+                            String status = String.format("Iteração %d/%d | Tempo: %ds", iteration, totalIterations, (now - totalStartTime) / 1000);
                             publish("STATUS:" + status);
 
                             if (message != null) {
@@ -295,18 +319,38 @@ class TrainingFrame extends JFrame {
                         outputPath = trainedBNFolder.getAbsolutePath() + File.separator + outputPath;
                     }
 
-                    String samplePath = outputPath.replace(".bn", "_sample.dat");
-                    try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(samplePath))) {
-                        out.writeObject(amostra);
+                    publish("STATUS:" + String.format("Otimizando S"));
+
+                    double initialS = 0.5;
+                    if (!optimizeSCheckbox.isSelected()) {
+                        try {
+                            initialS = Double.parseDouble(pseudoCountField.getText().trim());
+                            if (initialS < 0)
+                                throw new IllegalArgumentException("S deve ser >= 0.");
+                        } catch (NumberFormatException e) {
+                            throw new IllegalArgumentException("Valor de S inválido.");
+                        }
                     }
 
-                    BN bn = new BN(amostra, ghc.bestGraph, 0.5);
+                    BN bn = new BN(amostra, ghc.bestGraph, initialS);
+
+                    if (optimizeSCheckbox.isSelected()) {
+                        publish("Encontrando melhor Pseudo-Contagem (S)...");
+                        bn.optimizeS(amostra);
+                        publish("Melhor S: " + String.format("%.2f", bn.S));
+                    } else {
+                        publish("Pseudo-Contagem (S) fixa: " + initialS);
+                    }
+
                     bn.save(outputPath);
 
                     publish("Rede guardada: " + outputPath);
                     setProgress(100);
 
+                    long totalTime = System.currentTimeMillis() - totalStartTime;
+
                     publish("----------------------------- Concluído -----------------------------");
+                    publish("Tempo Total: " + (totalTime / 1000) + "s");
                     publish("Melhor Grafo: " + ghc.bestGraph);
                     publish("MDL: " + String.format("%.4f", ghc.bestMDL));
 

@@ -8,8 +8,8 @@ public class Amostra implements Serializable {
 
     ArrayList<int[]> vectorsList;
     int[] max;
-    
-    // Cache para o resultado dos It()
+
+    // Cache para o resultado dos It(), movido de volta para Amostra para persistir entre grafos
     private transient Map<String, Double> itCache = new HashMap<>();
 
     public Amostra() {
@@ -69,7 +69,6 @@ public class Amostra implements Serializable {
         return r;
     }
 
-
     public int count(ArrayList<Integer> vars, ArrayList<Integer> vals) {
         int r = 0;
         for (int[] vector : this.vectorsList) {
@@ -87,9 +86,6 @@ public class Amostra implements Serializable {
         return r;
     }
 
-    /**
-     * Retorna as combinações de valores possível dado uma lista de posições
-     */
     public ArrayList<ArrayList<Integer>> combinations(ArrayList<Integer> vars) {
         int combinationsLength = domain(vars);
         ArrayList<ArrayList<Integer>> combinations = new ArrayList<>();
@@ -110,30 +106,44 @@ public class Amostra implements Serializable {
         return combinations;
     }
 
+    public Amostra without(int index) {
+        Amostra subamostra = new Amostra();
+        if (this.max != null) {
+            subamostra.max = new int[this.max.length];
+            System.arraycopy(this.max, 0, subamostra.max, 0, this.max.length);
+        }
 
+        for (int i = 0; i < this.vectorsList.size(); i++) {
+            if (i != index) {
+                subamostra.add(this.vectorsList.get(i));
+            }
+        }
+        return subamostra;
+    }
+    
     public void clearCache() {
         if (itCache == null) {
-            this.itCache = new HashMap<>();
+            this.itCache = new java.util.HashMap<>();
         } else {
             itCache.clear();
         }
     }
 
+    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
+        if (itCache == null) {
+            this.itCache = new java.util.HashMap<>();
+        }
+        String key = nodeIdx + ":" + parents.toString();
+        itCache.put(key, value);
+    }
+
     public Double getCachedIt(int nodeIdx, ArrayList<Integer> parents) {
         if (itCache == null) {
-            this.itCache = new HashMap<>();
+            this.itCache = new java.util.HashMap<>();
             return null;
         }
         String key = nodeIdx + ":" + parents.toString();
         return itCache.get(key);
-    }
-
-    public void setCachedIt(int nodeIdx, ArrayList<Integer> parents, double value) {
-        if (itCache == null) {
-            this.itCache = new HashMap<>();
-        }
-        String key = nodeIdx + ":" + parents.toString();
-        itCache.put(key, value);
     }
 
     @Override

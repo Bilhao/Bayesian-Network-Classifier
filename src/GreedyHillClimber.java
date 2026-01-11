@@ -5,13 +5,13 @@ public class GreedyHillClimber {
     int maxParents;
     int numGraphs;
 
-    OrientedGraph bestGraph; // o melhor grafo encontrado
+    Grafoo bestGraph; // Grafo com melhor MDL encontrado
     double bestMDL = Double.NEGATIVE_INFINITY;
 
     private Listener listener;
 
     public interface Listener {
-        void onProgress(int iteration, int totalIterations, double currentBestScore, long timeElapsed, String message);
+        void onProgress(int iteration, int totalIterations, String message);
     }
 
     public void setListener(Listener listener) {
@@ -25,14 +25,12 @@ public class GreedyHillClimber {
         this.numGraphs = numGraphs;
     }
 
-    public OrientedGraph learn() {
-        long startTime = System.currentTimeMillis();
-
+    public Grafoo learn() {
         amostra.clearCache();
 
-        int n = amostra.dim() - 1; // tamanho do grafo
+        int n = amostra.dim() - 1;
 
-        if (numGraphs < 1) { // garante que temos pelo menos um grafo inicial
+        if (numGraphs < 1) {
             numGraphs = 1;
         }
 
@@ -42,11 +40,11 @@ public class GreedyHillClimber {
                 break;
             }
 
-            OrientedGraph graph;
+            Grafoo graph;
             if (currentIndex == 0) {
-                graph = new OrientedGraph(n); // grafo vazio
+                graph = new Grafoo(n); // Grafo vazio
             } else {
-                graph = randomGraph(n); // grafo aleatório
+                graph = randomGraph(n); // Grafo aleatório
             }
 
             graph = performGreedy(amostra, graph, maxParents, n);
@@ -58,7 +56,7 @@ public class GreedyHillClimber {
             }
 
             if (listener != null) {
-                listener.onProgress(currentIndex, numGraphs, bestMDL, System.currentTimeMillis() - startTime, null);
+                listener.onProgress(currentIndex + 1, numGraphs, null);
             }
         }
 
@@ -66,9 +64,9 @@ public class GreedyHillClimber {
     }
 
     /**
-     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta>0 - repete até não haver melhorias
+     * Greedy hill climbing a partir de um grafo inicial: - testa todos os vizinhos (remove/invert/add) - aplica o melhor com delta - repete até não haver melhorias
      */
-    private OrientedGraph performGreedy(Amostra amostra, OrientedGraph graph, int maxParents, int n) {
+    private Grafoo performGreedy(Amostra amostra, Grafoo graph, int maxParents, int n) {
 
         while (true) {
             if (Thread.currentThread().isInterrupted()) {
@@ -79,7 +77,6 @@ public class GreedyHillClimber {
             int bestD = -1;
             int bestOp = -1; // 0=REMOVE, 1=INVERT, 2=ADD
 
-            // 1) testar REMOVE e INVERT em arestas existentes
             for (int o = 0; o < n; o++) {
                 for (int d = 0; d < n; d++) {
                     if (o == d)
@@ -122,12 +119,12 @@ public class GreedyHillClimber {
             if (maxDelta <= 0.0) {
                 break;
             } else {
-                // aplicar o melhor movimento permanentemente
+                // Aplicar o melhor movimento permanentemente
                 if (bestOp == 0) {
                     graph.remove_edge(bestO, bestD);
                 } else if (bestOp == 1) {
                     graph.invert_edge(bestO, bestD);
-                } else { // bestOp == 2
+                } else if (bestOp == 2){
                     graph.add_edge(bestO, bestD);
                 }
             }
@@ -138,9 +135,9 @@ public class GreedyHillClimber {
     /**
      * Cria um grafo inicial aleatório: - adiciona sempre arestas C -> Xi (classe para todas as variáveis) - depois tenta adicionar arestas entre Xi respeitando: * maxParents (ignorando a classe) * aciclicidade
      */
-    private OrientedGraph randomGraph(int n) {
+    private Grafoo randomGraph(int n) {
 
-        OrientedGraph g = new OrientedGraph(n);
+        Grafoo g = new Grafoo(n);
         Random rand = new Random();
 
         for (int i = 0; i < n; i++) {
@@ -157,10 +154,10 @@ public class GreedyHillClimber {
         return g;
     }
 
-    private boolean createsCycle(OrientedGraph g, int o, int d, int op) {
+    private boolean createsCycle(Grafoo g, int o, int d, int op) {
         if (op == 1) {
             g.remove_edge(o, d);
-            boolean hasCycle = g.connected(d, o);
+            boolean hasCycle = g.connected(o, d);
             g.add_edge(o, d);
             return hasCycle;
         }

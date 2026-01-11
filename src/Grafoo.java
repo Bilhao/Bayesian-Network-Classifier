@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.io.Serializable;
 
-public class OrientedGraph implements Serializable {
+public class Grafoo implements Serializable {
     private static final long serialVersionUID = 1L;
     int n; // Número de nós = dimensão do dataset excluindo a classe
     ArrayList<ArrayList<Integer>> adj;
@@ -11,7 +11,7 @@ public class OrientedGraph implements Serializable {
     /**
      * Método construtor que recebe um natural n e retorna o grafo com n nós e sem arestas (vazio).
      */
-    public OrientedGraph(int n) {
+    public Grafoo(int n) {
         super();
         this.n = n;
         this.adj = new ArrayList<>(n);
@@ -85,24 +85,7 @@ public class OrientedGraph implements Serializable {
     public boolean connected(int o, int d) {
         if (o == d)
             return true;
-
-        LinkedList<Integer> queue = new LinkedList<>();
-        boolean[] visited = new boolean[this.n];
-
-        queue.add(o);
-        visited[o] = true;
-        while (!queue.isEmpty()) {
-            int current = queue.removeFirst();
-            if (current == d)
-                return true;
-            for (int child : children(current)) {
-                if (!visited[child]) {
-                    visited[child] = true;
-                    queue.add(child);
-                }
-            }
-        }
-        return false;
+        return BFS(o).contains(d);
     }
 
     /**
@@ -130,8 +113,7 @@ public class OrientedGraph implements Serializable {
             return cached;
         }
 
-        int classIdx = amostra.element(0).length - 1;
-        int amostraLength = amostra.length();
+        int classIdx = amostra.dim() - 1;
 
         int D_d = amostra.domain(nodeIdx);
         int D_w = amostra.domain(parentsIdx);
@@ -153,6 +135,7 @@ public class OrientedGraph implements Serializable {
             int d_val = vector[nodeIdx];
             int c_val = vector[classIdx];
 
+            // Calcula o índice combinado dos pais (transforma uma combinação de valores num único índice, usando os domínios dos pais)
             int w_idx = 0;
             for (int pIdx : parentsIdx) {
                 w_idx = w_idx * amostra.domain(pIdx) + vector[pIdx];
@@ -161,6 +144,7 @@ public class OrientedGraph implements Serializable {
             count_dwc[d_val][w_idx][c_val]++;
         }
 
+        // Preencher as tabelas de contagem parciais
         for (int d = 0; d < D_d; d++) {
             for (int w = 0; w < D_w; w++) {
                 for (int c = 0; c < D_c; c++) {
@@ -186,10 +170,10 @@ public class OrientedGraph implements Serializable {
                     int cnt_c = count_c[c];
 
                     // Probabilidades
-                    double pr_dwc = (double) cnt_dwc / amostraLength;
-                    double pr_dc = (double) cnt_dc / amostraLength;
-                    double pr_wc = (double) cnt_wc / amostraLength;
-                    double pr_c = (double) cnt_c / amostraLength;
+                    double pr_dwc = (double) cnt_dwc / amostra.length();
+                    double pr_dc = (double) cnt_dc / amostra.length();
+                    double pr_wc = (double) cnt_wc / amostra.length();
+                    double pr_c = (double) cnt_c / amostra.length();
 
                     // Fórmula da informação mútua condicional
                     if (pr_dc > 0 && pr_wc > 0 && pr_c > 0) {
@@ -257,19 +241,19 @@ public class OrientedGraph implements Serializable {
         double scoreAfter;
 
         if (op == 0) {
-            // Remover o→d: só d é afetado (perde um pai)
+            // Remover o → d: só d é afetado (perde um pai)
             scoreBefore = nodeScore(amostra, d);
             remove_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
             add_edge(o, d);
         } else if (op == 1) {
-            // Inverter o→d para d→o: o e d são afetados
+            // Inverter o → d para d → o: o e d são afetados
             scoreBefore = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(o, d);
             scoreAfter = nodeScore(amostra, o) + nodeScore(amostra, d);
             invert_edge(d, o);
         } else {
-            // Adicionar o→d: só d é afetado (ganha um pai)
+            // Adicionar o → d: só d é afetado (ganha um pai)
             scoreBefore = nodeScore(amostra, d);
             add_edge(o, d);
             scoreAfter = nodeScore(amostra, d);
