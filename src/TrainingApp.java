@@ -281,10 +281,12 @@ class TrainingFrame extends JFrame {
                     publish("Amostra: " + amostra.length() + " instâncias, " + amostra.dim() + " variáveis");
                     setProgress(10);
 
+                    long totalStartTime = System.currentTimeMillis();
+
                     ghc = new GreedyHillClimber(amostra, maxParents, numGraphs);
                     long[] lastUpdate = new long[1];
 
-                    ghc.setListener((iteration, totalIterations, currentBestScore, timeElapsed, message) -> {
+                    ghc.setListener((iteration, totalIterations, message) -> {
                         long now = System.currentTimeMillis();
                         if (message != null || iteration == totalIterations || now - lastUpdate[0] > 100) {
                             lastUpdate[0] = now;
@@ -293,7 +295,7 @@ class TrainingFrame extends JFrame {
                             int adjustedProgress = 15 + (int) (percent * 0.75);
                             setProgress(adjustedProgress);
 
-                            String status = String.format("Iteração %d/%d | Tempo: %ds", iteration, totalIterations, timeElapsed / 1000);
+                            String status = String.format("Iteração %d/%d | Tempo: %ds", iteration, totalIterations, (now - totalStartTime) / 1000);
                             publish("STATUS:" + status);
 
                             if (message != null) {
@@ -317,6 +319,8 @@ class TrainingFrame extends JFrame {
                         outputPath = trainedBNFolder.getAbsolutePath() + File.separator + outputPath;
                     }
 
+                    publish("STATUS:" + String.format("Otimizando S"));
+
                     double initialS = 0.5;
                     if (!optimizeSCheckbox.isSelected()) {
                         try {
@@ -332,7 +336,7 @@ class TrainingFrame extends JFrame {
 
                     if (optimizeSCheckbox.isSelected()) {
                         publish("Encontrando melhor Pseudo-Contagem (S)...");
-                        //bn.optimizeS(amostra);
+                        bn.optimizeS(amostra);
                         publish("Melhor S: " + String.format("%.2f", bn.S));
                     } else {
                         publish("Pseudo-Contagem (S) fixa: " + initialS);
@@ -343,7 +347,10 @@ class TrainingFrame extends JFrame {
                     publish("Rede guardada: " + outputPath);
                     setProgress(100);
 
+                    long totalTime = System.currentTimeMillis() - totalStartTime;
+
                     publish("----------------------------- Concluído -----------------------------");
+                    publish("Tempo Total: " + (totalTime / 1000) + "s");
                     publish("Melhor Grafo: " + ghc.bestGraph);
                     publish("MDL: " + String.format("%.4f", ghc.bestMDL));
 

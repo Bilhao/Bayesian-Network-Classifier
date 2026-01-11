@@ -106,6 +106,21 @@ public class Amostra implements Serializable {
         return combinations;
     }
 
+    public Amostra without(int index) {
+        Amostra subamostra = new Amostra();
+        if (this.max != null) {
+            subamostra.max = new int[this.max.length];
+            System.arraycopy(this.max, 0, subamostra.max, 0, this.max.length);
+        }
+
+        for (int i = 0; i < this.vectorsList.size(); i++) {
+            if (i != index) {
+                subamostra.add(this.vectorsList.get(i));
+            }
+        }
+        return subamostra;
+    }
+    
     public void clearCache() {
         if (itCache == null) {
             this.itCache = new java.util.HashMap<>();

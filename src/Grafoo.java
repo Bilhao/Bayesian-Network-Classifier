@@ -113,8 +113,7 @@ public class Grafoo implements Serializable {
             return cached;
         }
 
-        int classIdx = amostra.element(0).length - 1;
-        int amostraLength = amostra.length();
+        int classIdx = amostra.dim() - 1;
 
         int D_d = amostra.domain(nodeIdx);
         int D_w = amostra.domain(parentsIdx);
@@ -136,6 +135,7 @@ public class Grafoo implements Serializable {
             int d_val = vector[nodeIdx];
             int c_val = vector[classIdx];
 
+            // Calcula o índice combinado dos pais (transforma uma combinação de valores num único índice, usando os domínios dos pais)
             int w_idx = 0;
             for (int pIdx : parentsIdx) {
                 w_idx = w_idx * amostra.domain(pIdx) + vector[pIdx];
@@ -144,6 +144,7 @@ public class Grafoo implements Serializable {
             count_dwc[d_val][w_idx][c_val]++;
         }
 
+        // Preencher as tabelas de contagem parciais
         for (int d = 0; d < D_d; d++) {
             for (int w = 0; w < D_w; w++) {
                 for (int c = 0; c < D_c; c++) {
@@ -169,10 +170,10 @@ public class Grafoo implements Serializable {
                     int cnt_c = count_c[c];
 
                     // Probabilidades
-                    double pr_dwc = (double) cnt_dwc / amostraLength;
-                    double pr_dc = (double) cnt_dc / amostraLength;
-                    double pr_wc = (double) cnt_wc / amostraLength;
-                    double pr_c = (double) cnt_c / amostraLength;
+                    double pr_dwc = (double) cnt_dwc / amostra.length();
+                    double pr_dc = (double) cnt_dc / amostra.length();
+                    double pr_wc = (double) cnt_wc / amostra.length();
+                    double pr_c = (double) cnt_c / amostra.length();
 
                     // Fórmula da informação mútua condicional
                     if (pr_dc > 0 && pr_wc > 0 && pr_c > 0) {

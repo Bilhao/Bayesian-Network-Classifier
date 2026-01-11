@@ -5,13 +5,13 @@ public class GreedyHillClimber {
     int maxParents;
     int numGraphs;
 
-    Grafoo bestGraph; // o melhor grafo encontrado
+    Grafoo bestGraph; // Grafo com melhor MDL encontrado
     double bestMDL = Double.NEGATIVE_INFINITY;
 
     private Listener listener;
 
     public interface Listener {
-        void onProgress(int iteration, int totalIterations, double currentBestScore, long timeElapsed, String message);
+        void onProgress(int iteration, int totalIterations, String message);
     }
 
     public void setListener(Listener listener) {
@@ -26,13 +26,11 @@ public class GreedyHillClimber {
     }
 
     public Grafoo learn() {
-        long startTime = System.currentTimeMillis();
-
         amostra.clearCache();
 
-        int n = amostra.dim() - 1; // tamanho do grafo
+        int n = amostra.dim() - 1;
 
-        if (numGraphs < 1) { // garante que temos pelo menos um grafo inicial
+        if (numGraphs < 1) {
             numGraphs = 1;
         }
 
@@ -44,9 +42,9 @@ public class GreedyHillClimber {
 
             Grafoo graph;
             if (currentIndex == 0) {
-                graph = new Grafoo(n); // grafo vazio
+                graph = new Grafoo(n); // Grafo vazio
             } else {
-                graph = randomGraph(n); // grafo aleatório
+                graph = randomGraph(n); // Grafo aleatório
             }
 
             graph = performGreedy(amostra, graph, maxParents, n);
@@ -58,7 +56,7 @@ public class GreedyHillClimber {
             }
 
             if (listener != null) {
-                listener.onProgress(currentIndex, numGraphs, bestMDL, System.currentTimeMillis() - startTime, null);
+                listener.onProgress(currentIndex + 1, numGraphs, null);
             }
         }
 
@@ -79,7 +77,6 @@ public class GreedyHillClimber {
             int bestD = -1;
             int bestOp = -1; // 0=REMOVE, 1=INVERT, 2=ADD
 
-            // 1) testar REMOVE e INVERT em arestas existentes
             for (int o = 0; o < n; o++) {
                 for (int d = 0; d < n; d++) {
                     if (o == d)
@@ -122,12 +119,12 @@ public class GreedyHillClimber {
             if (maxDelta <= 0.0) {
                 break;
             } else {
-                // aplicar o melhor movimento permanentemente
+                // Aplicar o melhor movimento permanentemente
                 if (bestOp == 0) {
                     graph.remove_edge(bestO, bestD);
                 } else if (bestOp == 1) {
                     graph.invert_edge(bestO, bestD);
-                } else { // bestOp == 2
+                } else if (bestOp == 2){
                     graph.add_edge(bestO, bestD);
                 }
             }

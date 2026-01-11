@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 public class BN implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
+
     Amostra amostra;
     Grafoo grafo;
     double S;
@@ -77,22 +79,23 @@ public class BN implements java.io.Serializable {
         int classe = instance[this.classIdx];
         double p = classProb[classe];
 
-        for (int i = 0; i < this.classIdx; i++) { // percorre todas as variaveis exceto a classe
+        for (int i = 0; i < this.classIdx; i++) {
             ArrayList<Integer> pais = grafo.parents(i);
             ArrayList<Integer> valores = new ArrayList<>();
             for (int idx : pais) {
                 valores.add(instance[idx]);
             }
-            valores.add(classe);// adiciona a classe
+            valores.add(classe);
 
-            String key = valores.toString(); // converte a combinação numa chave para a CPT
-            double[] probs = cpt.get(i).get(key);// obtem a distribuição
+            String key = valores.toString();
+            double[] probs = cpt.get(i).get(key);
+            
             if (probs == null) {
-                // se a combinação nunca foi observada, aplica suavização (0 + S)/(0 + S * D_i) = 1/D_i
+                // Se a combinação nunca foi observada, aplica suavização (0 + S)/(0 + S * D_i) = 1/D_i
                 p *= 1.0 / amostra.domain(i);
             } else {
-                int val = instance[i]; // valor observado da variavel
-                p *= probs[val];// multiplica pela probabilidade condicional correspondente
+                int val = instance[i];
+                p *= probs[val];
             }
 
         }
@@ -140,16 +143,16 @@ public class BN implements java.io.Serializable {
         return probs;
     }
 
+
     /**
-     * Otimiza o parametro S testando valores entre 0.1 e 2 na amostra fornecida.
+     * Otimiza o parametro S testando valores entre 0.1 e 1 na amostra fornecida.
      */
     public void optimizeS(Amostra amostra) {
         double bestS = 0.5;
         double bestAccuracy = -1.0;
 
-        for (double s = 0.1; s <= 2; s += 0.1) {
+        for (double s = 0.1; s <= 1; s += 0.1) {
             this.S = s;
-            buildClassProbabilities();
             buildCPT();
 
             int acertos = 0;
