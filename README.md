@@ -17,7 +17,7 @@ O projeto utiliza o algoritmo **Greedy Hill Climber** com pontuação **MDL (Min
 
 ## Estrutura do Projeto
 * `src/`: Código fonte Java (`MainApp`, `TrainingApp`, `ClassificationApp`, `GreedyHillClimber`, `BN`, etc.).
-* `DataSets/`: Arquivos CSV com os dados para treino (provenientes do UCI Machine Learning Repository).
+* `DataSets/`: Arquivos CSV com os dados para treino.
 * `TrainedBN/`: Pasta destinada a armazenar as redes de Bayes geradas (`.bn`).
 
 ## Como Executar
@@ -49,8 +49,8 @@ A partir do menu principal, você pode acessar:
 
 * **Algoritmo:** Greedy Hill Climber com reinício aleatório (Random Restarts) para evitar máximos locais.
 * **Score:** MDL (Minimum Description Length) para penalizar estruturas excessivamente complexas (Overfitting).
-* **Suavização:** Utiliza pseudo-contagens (tipicamente ) para evitar probabilidades nulas em eventos raros.
+* **Suavização de Laplace:** Utiliza pseudo-contagens para evitar probabilidades nulas em eventos raros.
 
 ---
 
-*Projeto académico - LEBiom*
+*Projeto académico - 2025/2026*
