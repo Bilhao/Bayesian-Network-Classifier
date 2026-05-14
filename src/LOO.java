@@ -17,7 +17,6 @@ public class LOO {
             Grafoo bestGraph = ghc.bestGraph;
 
             BN bn = new BN(trainingData, bestGraph, 0.5);
-            // bn.optimizeS(trainingData);
 
             int[] linhaTeste = amostra.element(i);
             int[] iSemClasse = Arrays.copyOf(linhaTeste, linhaTeste.length - 1);
